@@ -143,12 +143,12 @@ void MainView::Show()
 
     ImGui::NewLine();
 
-    if (ImGui::Button("Configure Right Stick"))
+    if (ImGui::Button("Configure Input"))
     {
         show_change_r_stick = !show_change_r_stick;
     }
     if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Make sure you select the correct right stick up/down/left/right keys which are\nbinded with your keyboard.");
+        ImGui::SetTooltip("Make sure you select the correct up/down/left/right keys which are\nbinded with your keyboard.");
 
     ImGui::SameLine();
 
