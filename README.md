@@ -15,7 +15,8 @@ It simulates keypress of your keyboard according to the mouse position.<br/>
 **_What does it mean by simulate key press?_**<br/>
 If you've bound the right-stick(Or the stick which changes the camera) inputs with your keyboard eg. the default Ryujinx input configuration binds the right-stick inputs like this:<br/>
 ![image](https://i.ibb.co/CbptV6w/image.png)<br/>
-then after enabling mouse panning it will send **_I_** keypress to Ryujinx if you move your mouse cursor **UP**,<br/>
+then after enabling mouse panning<br/>
+it will send **_I_** keypress to Ryujinx if you move your mouse cursor **UP**,<br/>
 **_K_** if you move **DOWN** and so on.<br/>
 If you've changed these keys in Ryujinx make sure you also change those in RMB's configuration just click on the **Configure Input** and change accordingly.<br/>
 ![image](https://i.ibb.co/r4Qjnyr/image.png)<br/>
@@ -34,6 +35,10 @@ This is a simple learning project so, things might get broken. Since it simulate
 # Dependencies
 * [GLFW 3.4](https://github.com/glfw/glfw/) (Build from the official GitHub repo for your specific OS) for windows a custom build was placed in this repo.
 * [ImGui](https://github.com/ocornut/imgui) For simple or more like lazy UI.
+
+# How to Build
+* On windows, visual studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
+* For Linux and other OSs you to implement all these stuff listed [here.](#for-linux-and-other-oss)
 
 # For Linux and other OSs
 1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys and listened to `WM_HOTKEY` messages on that window. On Linux, I think something similar can be done using `XGrabKey`(X11 window manager) I don't have much experience.
