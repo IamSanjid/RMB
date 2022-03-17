@@ -32,7 +32,7 @@ This is a simple learning project so, things might get broken. Since it simulate
 2. It always sets the mouse position to the center of the screen and after moving the mouse it calculates which direction it was moved from the center of the screen and simulates key presses.
 
 # Dependencies
-[GLFW 3.4](https://github.com/glfw/glfw/)(Build from the official github repo for your specific OS) for windows a custom build was placed in this repo.
+[GLFW 3.4](https://github.com/glfw/glfw/)(Build from the official github repo for your specific OS) for windows a custom build was placed in this repo.<br/>
 [ImGui](https://github.com/ocornut/imgui) For simple or more like lazy UI.
 
 # For Linux and other OSs
