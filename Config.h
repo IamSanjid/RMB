@@ -18,7 +18,10 @@ public:
 	uint32_t* RIGHT_STICK_KEYS;
 
 	double CAMERA_UPDATE_TIME = 960.0;
-	double SENSITIVITY = 2.0;
+	double SENSITIVITY = 10.0;
+
+	bool HIDE_MOUSE = true;
+	bool AUTO_FOCUS_RYU = true;
 
 private:
 	Config();

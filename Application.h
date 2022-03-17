@@ -3,12 +3,10 @@
 #include <string>
 #include <memory>
 
-#include "views/MainView.h"
-
-#include "native.h"
-#include "mouse.h"
-
 struct GLFWwindow;
+struct HotkeyEvent;
+class MainView;
+class Mouse;
 
 class Application
 {
@@ -23,7 +21,7 @@ public:
 	static std::unique_ptr<Application> Create();
 
 	static Application* GetInstance();
-	static float GetTotalRunningTime();
+	static double GetTotalRunningTime();
 
 	bool Initialize(const char* name, uint32_t width, uint32_t height);
 

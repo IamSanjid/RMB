@@ -82,6 +82,8 @@ void MainView::Show()
 
     /* panning toggle hotkey changer.. */
     ImGui::TextDisabled("Panning Toggle Hotkeys");
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Choose this carefully. Make sure no other application is using the same hotkey.");
     ImGui::Text("Modifier: ");
     ImGui::SameLine();
     if (ImGui::BeginCombo("##modifier_combo", modifiers[modifier_selected]))
@@ -128,13 +130,25 @@ void MainView::Show()
 
     ImGui::NewLine();
 
+    ImGui::Checkbox("Hide Mouse in Panning Mode", &Config::Current()->HIDE_MOUSE);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Hides the normal mouse cursor.");
+    ImGui::Checkbox("Auto Focus Ryujinx", &Config::Current()->AUTO_FOCUS_RYU);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Tries to focus Ryujinx after enabling mouse panning.");
+
     if (ImGui::InputDouble("Sensitivity", &Config::Current()->SENSITIVITY, 0.5, 0.0, "%0.3f"))
     {
         if (Config::Current()->SENSITIVITY < 0.50)
             Config::Current()->SENSITIVITY = 0.50;
     }
 
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Camera sensitivity. The higher the faster the camera view will be changed.");
+
     ImGui::Text("Camera Update Time(ms):");
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Base camera update time, the lower the slower it will update.\nKinda like sensitivity but not recommended to change.\nBut you may need to change it for some games.");
     if (ImGui::InputDouble(" ", &Config::Current()->CAMERA_UPDATE_TIME, 10.0, 0.0, "%0.3f"))
     {
         if (Config::Current()->CAMERA_UPDATE_TIME < 100.0)

@@ -23,6 +23,10 @@
 #endif
 
 #include "Config.h"
+#include "views/MainView.h"
+#include "native.h"
+#include "mouse.h"
+
 #include <thread>
 #include <stdio.h>
 
@@ -39,10 +43,10 @@ Application* Application::GetInstance()
     return instance_;
 }
 
-float Application::GetTotalRunningTime()
+double Application::GetTotalRunningTime()
 {
     typedef std::chrono::high_resolution_clock Time;
-    typedef std::chrono::duration<float, std::ratio<1, 1000>> fmsec;
+    typedef std::chrono::duration<double, std::ratio<1, 1000>> fmsec;
 
     static auto starting_time = Time::now().time_since_epoch();
 
@@ -149,13 +153,13 @@ void Application::Run()
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     
-    /*std::thread([this]
+    std::thread([this]
     {
         while (is_running_)
         {
             mouse_->Update();
         }
-    }).detach();*/
+    }).detach();
 
     while (!glfwWindowShouldClose(main_window_))
     {
@@ -202,20 +206,23 @@ void Application::Reconfig()
 
 void Application::TogglePanning()
 {
-    if (!Native::GetInstance()->SetFocusOnProcess("Ryujinx"))
+    if (Config::Current()->AUTO_FOCUS_RYU && !Native::GetInstance()->SetFocusOnProcess("Ryujinx"))
         return;
     if (!panning_started_)
     {
         panning_started_ = true;
         std::thread(&Application::StartPanning, this).detach();
+#if !defined(_DEBUG)
+        if (Config::Current()->HIDE_MOUSE)
+            Native::GetInstance()->CursorHide(true);
+#endif
     }
     else
     {
         panning_started_ = false;
+        Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[0], 4);
+        Native::GetInstance()->CursorHide(false);
     }
-#if !defined(_DEBUG)
-    Native::GetInstance()->CursorHide(panning_started_);
-#endif
 }
 
 void Application::StartPanning()
@@ -264,15 +271,6 @@ void Application::StartPanning()
 
     double center_x = videoMode->width / 2.0, center_y = videoMode->height / 2.0;
 
-    std::thread([&] 
-    {
-        while (is_running_ && panning_started_)
-        {
-            Native::GetInstance()->SetMousePos(center_x, center_y);
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
-        }
-    }).detach();
-
     /* thread looks for mouse position change..  */
     double last_cursor_x = 0, last_cursor_y = 0;
     bool mouse_change_started = false;
@@ -290,13 +288,15 @@ void Application::StartPanning()
 
         if (x != last_cursor_x || y != last_cursor_y)
         {
+            Native::GetInstance()->SetMousePos(center_x, center_y);
             if (mouse_change_started)
                 mouse_->MouseMoved(x, y, center_x, center_y);
             last_cursor_x = x; last_cursor_y = y;
             mouse_change_started = true;
         }
 
-        focused_emu = focused_emu || Native::GetInstance()->SetFocusOnProcess("Ryujinx");
+        if (Config::Current()->AUTO_FOCUS_RYU)
+            focused_emu = focused_emu || Native::GetInstance()->SetFocusOnProcess("Ryujinx");
     }
     glfwDestroyWindow(window);
     panning_started_ = false;
