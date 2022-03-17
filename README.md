@@ -38,7 +38,7 @@ This is a simple learning project so, things might get broken. Since it simulate
 
 # How to Build
 * On windows, visual studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
-* For Linux and other OSs you to implement all these stuff listed [here.](#for-linux-and-other-oss)
+* For Linux and other OSs you need to implement all these stuff listed [here.](#for-linux-and-other-oss) A GLFW 3.4 build for the corresponding OS and ImGui.
 
 # For Linux and other OSs
 1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys and listened to `WM_HOTKEY` messages on that window. On Linux, I think something similar can be done using `XGrabKey`(X11 window manager) I don't have much experience.
