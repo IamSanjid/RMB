@@ -15,7 +15,7 @@ It simulates key press of your keyboard according to the mouse position change.<
 **_What does it mean by simulate key press?_**<br/>
 If you've bound the right-stick(Or the stick which changes the camera) inputs with your keyboard eg. the default Ryujinx input configuration binds the right-sitck inputs like this:<br/>
 ![image](https://i.ibb.co/CbptV6w/image.png)<br/>
-then after enabling mouse panning it will send **_I_** key press to Ryujinx if you move your mouse cursor **UP**<br/>
+then after enabling mouse panning it will send **_I_** key press to Ryujinx if you move your mouse cursor **UP**,<br/>
 **_K_** if you move **DOWN** and so on.<br/>
 If you've changed these keys in Ryujinx make sure you also change those in RMB's configuration just click on the **Configure Input** and change accordingly.<br/>
 ![image](https://i.ibb.co/r4Qjnyr/image.png)<br/>
@@ -42,7 +42,7 @@ This is a simple learning project so, things might get broken. Since it simulate
 4. (Optional) If you want to hide your cursor during panning mode you need to actually change the cursor image file your system currently using, for Windows used `SetSystemCursor` API. For linux google can help I suppose.
 5. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` was used and I think on linux `xdotool` should be able to help again.
 
-Check `native.h` a simple interface which was used as a bridge to call these native API(s).
+Check `native.h` a simple interface which was used as a bridge to call these native API(s).<br/>
 Use this as a base class for your specific OS implementation.
 
 # FIN
