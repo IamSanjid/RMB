@@ -23,8 +23,9 @@ If you've changed these keys in Ryujinx make sure you also changed those in RMB'
 You can change the **_Sensitivity_** and **_Camera Update Time_** to adjust your needs.
 
 # Disclaimer
-This is a simple learning project so, things might get broken. Since it simulates key presses according to mouse position change, you might feel the camera movement is a bit choppy and wrong. And since this simulates key presses, you should close(recommended) or hide/minimize other applications.<br/>
-**_Make sure Ryujinx is running, focused and is in center of your screen before enabling mouse panning._**
+This is a simple learning project so, things might get broken. Since it simulates key presses according to mouse position change, you might feel the camera movement is a bit choppy and wrong. And since this simulates key presses, you should close(recommended) or hide/minimize other applications.<br/><br/>
+**_Make sure Ryujinx is running, focused and is in center of your screen before enabling mouse panning._**<br/>
+**_Default Panning Toggle Hotkey is Ctrl+F9 if any other application uses the same hotkey it will fail so make sure to choose an unique hotkey or just close other applications._**
 
 # How this works?
 1. It uses GLFW(https://www.glfw.org/) to monitor your mouse position changes. It creates an invisible window size of the primary monitor's screen. Then in it's own thread checks for mouse position.
