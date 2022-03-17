@@ -8,14 +8,14 @@ Well, if your desired game changes its camera view position according to your ri
 
 # Requirements
 Just be able to run Ryujinx and for now this only works for Windows.
-But the code structure was designed to work on all the platforms Ryujinx supports, only need to support native API(s) for specific platforms.
+But the code structure was designed to work on all the platforms Ryujinx supports, only needs to support native API(s) for specific platforms.
 
 # How to configure?
-It simulates key press of your keyboard according to the mouse position change.<br/>
+It simulates keypress of your keyboard according to the mouse position change.<br/>
 **_What does it mean by simulate key press?_**<br/>
-If you've bound the right-stick(Or the stick which changes the camera) inputs with your keyboard eg. the default Ryujinx input configuration binds the right-sitck inputs like this:<br/>
+If you've bound the right-stick(Or the stick which changes the camera) inputs with your keyboard eg. the default Ryujinx input configuration binds the right-stick inputs like this:<br/>
 ![image](https://i.ibb.co/CbptV6w/image.png)<br/>
-then after enabling mouse panning it will send **_I_** key press to Ryujinx if you move your mouse cursor **UP**,<br/>
+then after enabling mouse panning it will send **_I_** keypress to Ryujinx if you move your mouse cursor **UP**,<br/>
 **_K_** if you move **DOWN** and so on.<br/>
 If you've changed these keys in Ryujinx make sure you also change those in RMB's configuration just click on the **Configure Input** and change accordingly.<br/>
 ![image](https://i.ibb.co/r4Qjnyr/image.png)<br/>
@@ -23,29 +23,29 @@ If you've changed these keys in Ryujinx make sure you also change those in RMB's
 You can change the **_Sensitivity_** and **_Camera Update Time_** to adjust your needs.
 
 # Disclaimer
-This is a simple learning project so, things might get broken. Since it simulates key presses according to mouse position change, you might feel the camera movement is a bit choppy and wrong. And since this simulates key presses, you should close(recommended) or hide/minimize other applications.<br/><br/>
-**_Make sure Ryujinx is running, focused and is in center of your screen before enabling mouse panning._**<br/>
-**_Default Panning Toggle Hotkey is Ctrl+F9 if any other application uses the same hotkey it will fail so make sure to choose an unique hotkey or just close other applications._**
+This is a simple learning project so, things might get broken. Since it simulates key presses according to the mouse position change, you might feel the camera movement is a bit choppy and wrong. And since this simulates keypresses, you should close(recommended) or hide/minimize other applications.<br/><br/>
+**_Make sure Ryujinx is running, focused, and is in the center of your screen before enabling mouse panning._**<br/>
+**_Default Panning Toggle Hotkey is Ctrl+F9 if any other application uses the same hotkey it will fail so make sure to choose a unique hotkey or just close other applications._**
 
-# How this works?
-1. It uses GLFW(https://www.glfw.org/) to monitor your mouse position changes. It creates an invisible window size of the primary monitor's screen. Then in it's own thread checks for mouse position.
+# How does this work?
+1. It uses GLFW(https://www.glfw.org/) to monitor your mouse position changes. It creates an invisible window size of the primary monitor's screen. Then in its own thread checks for mouse position.
 2. It always sets the mouse position to the center of the screen and after moving the mouse it calculates which direction it was moved from the center of the screen and simulates key presses.
 
 # Dependencies
-[GLFW 3.4](https://github.com/glfw/glfw/)(Build from the official github repo for your specific OS) for windows a custom build was placed in this repo.<br/>
-[ImGui](https://github.com/ocornut/imgui) For simple or more like lazy UI.
+* [GLFW 3.4](https://github.com/glfw/glfw/) (Build from the official GitHub repo for your specific OS) for windows a custom build was placed in this repo.
+* [ImGui](https://github.com/ocornut/imgui) For simple or more like lazy UI.
 
 # For Linux and other OSs
-1. First you need to implement global hotkey listener, for windows I made a dummy window and used `RegisterHotKey` API to register hotkeys and listened to `WM_HOTKEY` messages on that window. On Linux I think something similar can be done using `XGrabKey`(X11 window manager) I don't have much experience.
-2. Then you need to implement how to simulate key presses on your corresponding OS, for windows `SendInput` was enough. On Linux I think you can look for `xdotool`, how it works.
+1. First you need to implement a global hotkey listener, for windows, I made a dummy window and used `RegisterHotKey` API to register hotkeys and listened to `WM_HOTKEY` messages on that window. On Linux, I think something similar can be done using `XGrabKey`(X11 window manager) I don't have much experience.
+2. Then you need to implement how to simulate key presses on your corresponding OS, for windows `SendInput` was enough. On Linux, I think you can look for `xdotool`, how it works.
 3. After that you need to implement how to set your cursor position, for Windows used `SetCursorPos` same effect can be done with `SendInput`. For Linux again look how `xdotool` works.
-4. (Optional) If you want to hide your cursor during panning mode you need to actually change the cursor image file your system currently using, for Windows used `SetSystemCursor` API. For linux google can help I suppose.
-5. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` was used and I think on linux `xdotool` should be able to help again.
+4. (Optional) If you want to hide your cursor during panning mode you need to actually change the cursor image file your system currently using, for Windows used `SetSystemCursor` API. For Linux google can help I suppose.
+5. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` was used and I think on Linux `xdotool` should be able to help again.
 
-Check `native.h` a simple interface which was used as a bridge to call these native API(s).<br/>
+Check `native.h` a simple interface that was used as a bridge to call these native API(s).<br/>
 Use this as a base class for your specific OS implementation.
 
 # FIN
-Again this was a learning project, if anyone want to help me improve I would really appericiate it. If you find any bugs or issues let me know by opening an issue. Feel free to pull any request. Thank you for your time.
+Again this was a learning project, if anyone wants to help me improve I would really appreciate it. If you find any bugs or issues let me know by opening an issue. Feel free to pull any request. Thank you for your time.
 
 https://user-images.githubusercontent.com/38256064/158840429-af35e4d8-bb21-4f9f-9e72-05ce3122eaf1.mp4
