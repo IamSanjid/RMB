@@ -14,11 +14,11 @@ But the code structure was designed to work on all the platforms Ryujinx support
 It simulates key press of your keyboard according to the mouse position change.<br/>
 **_What does it mean by simulate key press?_**<br/>
 If you've bound the right-stick(Or the stick which changes the camera) inputs with your keyboard eg. the default Ryujinx input configuration binds the right-sitck inputs like this:<br/>
-![alt](https://i.ibb.co/CbptV6w/image.png)<br/>
+![image](https://i.ibb.co/CbptV6w/image.png)<br/>
 then after enabling mouse panning it will send **_I_** key press to Ryujinx if you move your mouse cursor **UP**<br/>
 **_K_** if you move **DOWN** and so on.<br/>
 If you've changed these keys in Ryujinx make sure you also changed those in RMB's configuration just click on the **Configure Input** and change accordingly.<br/>
-![alt](https://i.ibb.co/r4Qjnyr/image.png)<br/>
+![image](https://i.ibb.co/r4Qjnyr/image.png)<br/>
 
 You can change the **_Sensitivity_** and **_Camera Update Time_** to adjust your needs.
 
