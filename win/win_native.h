@@ -53,6 +53,7 @@ private:
 	HHOOK kbd_hook_;
 	*/
 
+	static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	static WinNative* instance_;
@@ -65,6 +66,9 @@ private:
 
 	std::unordered_map<std::string, RegKey> registered_keys_;
 	std::unordered_map<uint32_t, std::string> registered_ids_;
+
+	POINT last_mouse_pos_{ -1 };
 	HWND reg_window_;
+	HHOOK mouse_hook_;
 	HCURSOR default_arrow_;
 };

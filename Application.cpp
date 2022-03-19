@@ -242,6 +242,7 @@ void Application::StartPanning()
     double last_cursor_x = 0, last_cursor_y = 0;
     bool mouse_change_started = false;
     bool focused_emu = false;
+
     while (panning_started_)
     {
         double x = 0, y = 0;
@@ -258,6 +259,7 @@ void Application::StartPanning()
 
         if (Config::Current()->AUTO_FOCUS_RYU)
             focused_emu = focused_emu || Native::GetInstance()->SetFocusOnProcess("Ryujinx");
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
