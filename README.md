@@ -33,14 +33,15 @@ This is a simple learning project so, things might get broken. Since it simulate
 2. It always sets the mouse position to the center of the screen and if the user moves the mouse then it calculates which direction it was moved from the center of the screen and simulates key presses.
 
 # Dependencies
-* [GLFW 3.4](https://github.com/glfw/glfw/) (Build from the official GitHub repo for your specific OS) for windows a custom build was placed in this repo.
+* [GLFW 3.3+](https://github.com/glfw/glfw/) for windows/Linux a custom build was placed in this repo.
 * [ImGui](https://github.com/ocornut/imgui) For simple or more like lazy UI.
 
 # How to Build
 * On windows, visual studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
-* For Linux and other OSs you need to implement all these stuff listed [here.](#for-linux-and-other-oss) A GLFW 3.4 build for the corresponding OS and ImGui.
+* For Linux and other OSs you need to implement all these stuff listed [here](#for-linux-and-other-oss). A GLFW 3.3+ build for the corresponding OS and ImGui.
+  - Btw for Linux make sure you've installed all x11 libs more specifically run `pkg-config --libs x11 xi xfixes` and make sure everything is installed.
 
-# For Linux and other OSs
+# For Linux and other OSs (For Linux most of the API(s) are implemented)
 1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys and listened to `WM_HOTKEY` messages on that window. On Linux, I think something similar can be done using `XGrabKey`(X11 window manager) I don't have much experience.
 2. Then you need to implement how to simulate the key presses on the corresponding OS, for windows `SendInput` was enough. On Linux, I think you can look for `xdotool`, how it works.
 3. After that you need to implement how to set your cursor position, for Windows `SetCursorPos` API was used same effect can be done by using `SendInput`. For Linux again look how `xdotool` works.
