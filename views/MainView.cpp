@@ -15,7 +15,7 @@ MainView::MainView()
     IMGUI_CHECKVERSION();
     name_ = "Main";
 
-    glfw_modifiers = new uint32_t[]
+    glfw_modifiers = new uint32_t[3]
     {
         (uint32_t)glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL),
         (uint32_t)glfwGetKeyScancode(GLFW_KEY_LEFT_SHIFT),
@@ -110,7 +110,7 @@ void MainView::Show()
     ImGui::SameLine();
     if (ImGui::BeginCombo("##key_combo", glfw_str_keys[key_selected]))
     {
-        for (int n = 0; n < glfw_str_keys.size(); n++)
+        for (int n = 0; n < (int)glfw_str_keys.size(); n++)
         {
             bool is_selected = key_selected == n;
             if (ImGui::Selectable(glfw_str_keys[n], is_selected))

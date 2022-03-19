@@ -138,6 +138,21 @@ void WinNative::SetMousePos(double x, double y)
 	::SetCursorPos((int)x, (int)y);
 }
 
+void WinNative::GetMousePos(double* x_ret, double* y_ret)
+{
+	POINT pos;
+	if (GetCursorPos(&pos))
+	{
+		*x_ret = static_cast<double>(pos.x);
+		*y_ret = static_cast<double>(pos.y);
+	}
+	else
+	{
+		*x_ret = 0.0;
+		*y_ret = 0.0;
+	}
+}
+
 bool WinNative::SetFocusOnProcess(const std::string& process_name)
 {
 	struct process_finder

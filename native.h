@@ -29,6 +29,7 @@ public:
 	virtual void SendKeysDown(uint32_t* keys, size_t count) = 0;
 	virtual void SendKeysUp(uint32_t* keys, size_t count) = 0;
 	virtual void SetMousePos(double x, double y) = 0;
+	virtual void GetMousePos(double* x_ret, double* y_ret) = 0;
 	/* optional */
 	virtual bool SetFocusOnProcess(const std::string& process_name) = 0;
 	virtual void CursorHide(bool hide) = 0;

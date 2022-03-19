@@ -2,6 +2,8 @@
 
 #ifdef _MSC_VER
 #include "win_native.h"
+#else
+#include "linux_native.h"
 #endif
 
 #include "imgui.h"
@@ -227,30 +229,6 @@ void Application::TogglePanning()
 
 void Application::StartPanning()
 {
-    /* making invisible window  */
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-// GL ES 2.0 + GLSL 100
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#elif defined(__APPLE__)
-    // GL 3.2 + GLSL 150
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
-#else
-    // GL 3.0 + GLSL 130
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#endif
-
-    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-    glfwWindowHint(GLFW_MOUSE_PASSTHROUGH, GLFW_TRUE);
-    //glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-
     int monitorX, monitorY;
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -258,33 +236,16 @@ void Application::StartPanning()
 
     glfwGetMonitorPos(monitor, &monitorX, &monitorY);
 
-    GLFWwindow* window = glfwCreateWindow(videoMode->width, videoMode->height, Config::Current()->NAME, NULL, NULL);
-    if (window == NULL)
-    {
-        panning_started_ = false;
-        return;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-    glfwSetWindowAttrib(window, GLFW_DECORATED, GLFW_FALSE);
-    glfwSetWindowPos(window, monitorX, monitorY);
-
     double center_x = videoMode->width / 2.0, center_y = videoMode->height / 2.0;
 
     /* thread looks for mouse position change..  */
     double last_cursor_x = 0, last_cursor_y = 0;
     bool mouse_change_started = false;
     bool focused_emu = false;
-    while (!glfwWindowShouldClose(window))
+    while (panning_started_)
     {
-        if (!panning_started_)
-            glfwSetWindowShouldClose(window, 1);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-
         double x = 0, y = 0;
-        glfwGetCursorPos(window, &x, &y);
+        Native::GetInstance()->GetMousePos(&x, &y);
 
         if (x != last_cursor_x || y != last_cursor_y)
         {
@@ -298,8 +259,6 @@ void Application::StartPanning()
         if (Config::Current()->AUTO_FOCUS_RYU)
             focused_emu = focused_emu || Native::GetInstance()->SetFocusOnProcess("Ryujinx");
     }
-    glfwDestroyWindow(window);
-    panning_started_ = false;
 }
 
 void Application::OnHotkey(HotkeyEvent* evt)
