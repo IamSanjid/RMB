@@ -138,15 +138,7 @@ void WinNative::SendKeysUp(uint32_t* keys, size_t count)
 
 void WinNative::SetMousePos(double x, double y)
 {
-	INPUT input{};
-	input.type = INPUT_MOUSE;
-	input.mi.mouseData = 0;
-	input.mi.dx = (int)x * (65536 / GetSystemMetrics(SM_CXSCREEN));
-	input.mi.dy = (int)y * (65536 / GetSystemMetrics(SM_CYSCREEN));
-	input.mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
-	SendInput(1, &input, sizeof(input));
-
-	//::SetCursorPos((int)x, (int)y);
+	::SetCursorPos((int)x, (int)y);
 }
 
 void WinNative::GetMousePos(double* x_ret, double* y_ret)
@@ -416,7 +408,7 @@ LRESULT WinNative::LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	if (nCode == HC_ACTION)
 	{
-		if (wParam == WM_MOUSEWHEEL)
+		if (wParam == WM_MOUSEMOVE)
 			instance_->last_mouse_pos_ = ((MOUSEHOOKSTRUCT*)lParam)->pt;
 	}
 	return CallNextHookEx(nullptr, nCode, wParam, lParam);
