@@ -270,8 +270,9 @@ void Application::OnHotkey(HotkeyEvent* evt)
     fprintf(stdout, "hot_key: (%d, %d)\n", evt->key, evt->modifier);
     if ((int)evt->key == glfwGetKeyScancode(GLFW_KEY_T) && evt->modifier == Config::Current()->TOGGLE_MODIFIER)
     {    
-        //mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
-        Native::GetInstance()->SetFocusOnProcess("Ryujinx");
+        mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
+        /*Native::GetInstance()->CursorHide(main_view_->test_type == 0);
+        main_view_->test_type ^= 1;*/
     }
 #endif
     if (evt->key == Config::Current()->TOGGLE_KEY && evt->modifier == Config::Current()->TOGGLE_MODIFIER)

@@ -212,9 +212,10 @@ void WinNative::CursorHide(bool hide)
 		}
 
 		// Set the cursor to a transparent one to emulate no cursor
-		HANDLE noCursorHandle = LoadCursorFromFile(L"nocur.cur");
+		BYTE ANDmaskCursor[1 * 4]{0};
+		BYTE XORmaskCursor[1 * 4]{0};
 
-		HCURSOR noCursor = CopyCursor(noCursorHandle);
+		auto noCursor = CreateCursor(nullptr, 1, 1, 1, 1, ANDmaskCursor, XORmaskCursor);
 		SetSystemCursor(noCursor, OCR_NORMAL);
 		DestroyCursor(noCursor);
 	}
