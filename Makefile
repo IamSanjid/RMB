@@ -1,11 +1,19 @@
 CC := g++
-CFLAGS := -Wall -g
+CFLAGS := -Wall
 TARGET := RMB
 INCLUDES = -Iglfw/include -Iimgui -Ilinux -IUtils -Iviews
-LIBS = glfw/lib-linux-64/libglfw3.a -lglut -lGLU -lGL $(shell pkg-config --libs x11 xi xfixes) -lXtst -lm -lXxf86vm -lXrandr -lpthread -ldl
+LIBS = glfw/lib-linux-64/libglfw3.a -lGL $(shell pkg-config --libs x11 xi xfixes xtst) -lm -lpthread -ldl
 
 SRCS := $(wildcard *.cpp) $(wildcard imgui/*.cpp) $(wildcard linux/*.cpp) $(wildcard views/*.cpp)
 OBJS := $(patsubst %.cpp,%.o,$(SRCS))
+
+ifeq ($(BUILD),debug)   
+# "Debug" build - no optimization, and debugging symbols
+CFLAGS += -O0 -g -D_DEBUG=1
+else
+# "Release" build - optimization, and no debug symbols
+CFLAGS += -O2 -s -DNDEBUG
+endif
 
 all: $(TARGET)
 $(TARGET): $(OBJS)

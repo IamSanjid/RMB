@@ -43,7 +43,7 @@ private:
 
     static LinuxNative* instance_;
 
-	typedef void(*EnumWindowType)(Window window, void* userDefinedPtr);
+	typedef void(*EnumWindowProc)(Window window, void* userDefinedPtr);
 
 	/* most of these codes are copy pasted from https://github.com/jordansissel/xdotool */
 
@@ -51,7 +51,7 @@ private:
 	unsigned char* GetWindowPropertyByAtom(Window window, Atom atom, long *nitems = NULL, Atom *type = NULL, int *size = NULL);
 	uint32_t KeyCodeToModifier(XModifierKeymap *modmap, KeyCode keycode);
 	uint32_t HashRegKey(int key, uint32_t modmask);
-	void EnumAllWindow(EnumWindowType enumWindowProc, void* userDefinedPtr);
+	void EnumAllWindow(EnumWindowProc enumWindowProc, void* userDefinedPtr);
 
 	bool ActivateWindow(Window window);
 	void SendKey(int key, bool is_down);

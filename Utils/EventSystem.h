@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include <unordered_map>
+#include <queue>
 #include <typeindex>
 
 // stolen from: https://medium.com/@savas/nomad-game-engine-part-7-the-event-system-45a809ccb68f
@@ -78,6 +79,25 @@ public:
     EventBus(EventBus const&) = delete;
     void operator=(EventBus const&) = delete;
 
+    void update()
+    {
+        while (!published_events.empty())
+        {
+            auto& published_event = published_events.front();
+            HandlerList* handlers = subscribers[published_event.id];
+
+            if (handlers != nullptr) 
+            {
+                for (auto& handler : *handlers)
+                {
+                    handler->exec(published_event.evt);
+                }
+            }
+
+            published_events.pop();
+        }
+    }
+
     template<typename EventType>
     void publish(EventType* evnt)
     {
@@ -87,11 +107,7 @@ public:
             return;
         }
 
-        for (auto& handler : *handlers) {
-            if (handler != nullptr) {
-                handler->exec(evnt);
-            }
-        }
+        published_events.push(PublishedEvent{ typeid(EventType), evnt });
     }
 
     template<class EventType>
@@ -158,5 +174,11 @@ public:
         handlers->clear();
     }
 private:
+    struct PublishedEvent
+    {
+        std::type_index id;
+        Event* evt;
+    };
     std::unordered_map<std::type_index, HandlerList*> subscribers;
+    std::queue<PublishedEvent> published_events;
 };

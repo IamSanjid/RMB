@@ -130,9 +130,8 @@ bool Application::Initialize(const char* name, uint32_t width, uint32_t height)
 
     Reconfig();
 #if _DEBUG
-    Native::GetInstance()->RegisterHotKey(glfwGetKeyScancode(GLFW_KEY_T), Config::Current()->TOGGLE_MODIFIER);
+    Native::GetInstance()->RegisterHotKey(glfwGetKeyScancode(GLFW_KEY_D), glfwGetKeyScancode(GLFW_KEY_LEFT_SUPER));
 #endif
-
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -140,21 +139,19 @@ bool Application::Initialize(const char* name, uint32_t width, uint32_t height)
     return ImGui_ImplGlfw_InitForOpenGL(main_window_, true) && ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-
-
 void Application::Run()
 {
     if (is_running_)
         return;
-    
+
     is_running_ = true;
-    
+
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.IniFilename = NULL;
     ImGui::StyleColorsDark();
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    
+
     std::thread([this]
     {
         while (is_running_)
@@ -166,6 +163,7 @@ void Application::Run()
     while (!glfwWindowShouldClose(main_window_))
     {
         Native::GetInstance()->Update();
+        EventBus::Instance().update();
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -174,7 +172,7 @@ void Application::Run()
         {
             glfwIconifyWindow(main_window_);
         }
-        
+
         main_view_->Show();
 
         ImGui::Render();
@@ -266,11 +264,16 @@ void Application::StartPanning()
 void Application::OnHotkey(HotkeyEvent* evt)
 {
 #if _DEBUG
-    
     fprintf(stdout, "hot_key: (%d, %d)\n", evt->key, evt->modifier);
-    if ((int)evt->key == glfwGetKeyScancode(GLFW_KEY_T) && evt->modifier == Config::Current()->TOGGLE_MODIFIER)
+    if ((int)evt->key == glfwGetKeyScancode(GLFW_KEY_D) && (int)evt->modifier == glfwGetKeyScancode(GLFW_KEY_LEFT_SUPER))
     {    
-        mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
+        //mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
+        //std::this_thread::sleep_for(std::chrono::seconds(3));
+        uint32_t char_ = Config::Current()->RIGHT_STICK_KEYS[0];
+        Native::GetInstance()->SendKeysDown(&char_, 1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        Native::GetInstance()->SendKeysUp(&char_, 1);
+        fprintf(stdout, "SENT!\n");
         /*Native::GetInstance()->CursorHide(main_view_->test_type == 0);
         main_view_->test_type ^= 1;*/
     }

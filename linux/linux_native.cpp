@@ -2,16 +2,9 @@
 
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
-#include <X11/Xatom.h>
-#include <X11/Xresource.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XTest.h>
-#include <X11/extensions/Xinerama.h>
 #include <X11/extensions/XInput2.h>
-#include <X11/keysym.h>
-#include <X11/cursorfont.h>
-
-#include <xkbcommon/xkbcommon.h>
 
 #include <thread>
 #include <functional>
@@ -36,7 +29,12 @@ LinuxNative::LinuxNative()
     display_name_ = XDisplayName(display_name_);
     display_ = XOpenDisplay(display_name_);
 
-    /* getting some required info for scan codes */
+    if (!display_)
+        return;
+
+    XSelectInput(display_, DefaultRootWindow(display_), KeyPressMask);
+
+    /* getting scan code infos */
 
     int keycode_low, keycode_high, keysyms_per_keycode;
 
@@ -88,17 +86,21 @@ LinuxNative::~LinuxNative()
     {
         XCloseDisplay(display_);
     }
+    for (auto& it : registered_keys_)
+    {
+        UnregisterHotKey(it.second.key, it.second.modifier);
+    }
 	instance_ = nullptr;
 }
 
 void LinuxNative::Update()
 {
-    XEvent event;
     while (XPending(display_))
     {
+        XEvent event;
         XNextEvent(display_, &event);
 
-        switch (event.type) 
+        switch (event.type)
         {
             case KeyPress:
                 const auto& key_data = event.xkey;
@@ -131,10 +133,10 @@ void LinuxNative::RegisterHotKey(uint32_t key, uint32_t modifier)
     {
         Window root_window = RootWindow(display_, screen);
 
-        int error = XGrabKey(display_, key, modmask, root_window, True, GrabModeAsync, GrabModeAsync);
-        error &= XGrabKey(display_, key, modmask | LockMask, root_window, True, GrabModeAsync, GrabModeAsync);
-        error &= XGrabKey(display_, key, modmask | Mod2Mask, root_window, True, GrabModeAsync, GrabModeAsync);
-        error &= XGrabKey(display_, key, modmask | LockMask | Mod2Mask, root_window, True, GrabModeAsync, GrabModeAsync);
+        int error = XGrabKey(display_, key, modmask, root_window, False, GrabModeAsync, GrabModeAsync);
+        error &= XGrabKey(display_, key, modmask | LockMask, root_window, False, GrabModeAsync, GrabModeAsync);
+        error &= XGrabKey(display_, key, modmask | Mod2Mask, root_window, False, GrabModeAsync, GrabModeAsync);
+        error &= XGrabKey(display_, key, modmask | LockMask | Mod2Mask, root_window, False, GrabModeAsync, GrabModeAsync);
         if (error <= 1)
         {
             fprintf(stdout, "Registered hot key: %d, %d\n", (int)key, (int)modifier);
@@ -194,12 +196,10 @@ void LinuxNative::SendKeysUp(uint32_t* keys, size_t count)
 
 void LinuxNative::SetMousePos(double x, double y)
 {
-    int current_x = 0, current_y = 0, screen = -1;
+    int screen = -1;
 
-    GetDefaultScreenMousePos(&current_x, &current_y, &screen, NULL);
-    XTestFakeMotionEvent(display_, screen, -current_x, -current_y, CurrentTime);
-    XTestFakeMotionEvent(display_, screen, (int)x, (int)y, CurrentTime);
-    XSync(display_, False);
+    GetDefaultScreenMousePos(NULL, NULL, &screen, NULL);
+    XWarpPointer(display_, None, RootWindow(display_, screen), 0, 0, 0, 0, (int)x, (int)y);
     XFlush(display_);
 }
 
@@ -215,40 +215,41 @@ bool LinuxNative::SetFocusOnProcess(const std::string& process_name)
 {
     struct EnumWind
     {
-        LinuxNative* l_this;
-        const char* proc_name;
+        LinuxNative* sender_;
+        const char* target_proc_name;
     };
     EnumWind enum_wind{ this, process_name.c_str() };
 
     EnumAllWindow([](Window window, void* ptr)
     {
         EnumWind* ew = (EnumWind*)ptr;
+        static auto atom_window_type_id = XInternAtom(ew->sender_->display_, "_NET_WM_WINDOW_TYPE", True);
+        static auto atom_target_type = XInternAtom(ew->sender_->display_, "_NET_WM_WINDOW_TYPE_NORMAL", True);
+
         XWindowAttributes attr;
         XClassHint classhint;
-        XGetWindowAttributes(ew->l_this->display_, window, &attr);
-
-        auto atomType = XInternAtom(ew->l_this->display_, "_NET_WM_WINDOW_TYPE", True);
-        auto target_type = XInternAtom(ew->l_this->display_, "_NET_WM_WINDOW_TYPE_NORMAL", True);
-        Atom* typeId = (Atom*)ew->l_this->GetWindowPropertyByAtom(window, atomType);
-        if (!typeId || target_type != *typeId)
-        {
-            if (typeId)
-                free(typeId);
-            return;
-        }
-        free(typeId);
+        XGetWindowAttributes(ew->sender_->display_, window, &attr);
 
         if (attr.map_state != IsViewable)
             return;
 
-        if (XGetClassHint(ew->l_this->display_, window, &classhint)) 
+        if (XGetClassHint(ew->sender_->display_, window, &classhint)) 
         {
-            if (classhint.res_name && strstr(classhint.res_name, ew->proc_name))
+            if (classhint.res_name && strstr(classhint.res_name, ew->target_proc_name))
             {
                 XFree(classhint.res_name);
                 XFree(classhint.res_class);
 
-                ew->l_this->ActivateWindow(window);
+                Atom* atom_window_type = (Atom*)ew->sender_->GetWindowPropertyByAtom(window, atom_window_type_id);
+                if (!atom_window_type || atom_target_type != *atom_window_type)
+                {
+                    if (atom_window_type)
+                        free(atom_window_type);
+                    return;
+                }
+                free(atom_window_type);
+
+                ew->sender_->ActivateWindow(window);
                 return;
             }
             XFree(classhint.res_name);
@@ -261,8 +262,9 @@ bool LinuxNative::SetFocusOnProcess(const std::string& process_name)
 
 void LinuxNative::CursorHide(bool hide)
 {
+    static bool is_hidden = false;
     const int screencount = ScreenCount(display_);
-    if (hide)
+    if (hide && !is_hidden)
     {
         for (int screen = 0; screen < screencount; screen++) 
         {
@@ -282,7 +284,7 @@ void LinuxNative::CursorHide(bool hide)
             XFixesHideCursor(display_, root_window);
         }
     }
-    else
+    else if (is_hidden)
     {
         for (int screen = 0; screen < screencount; screen++) 
         {
@@ -429,12 +431,10 @@ void LinuxNative::SendKey(int key, bool is_down)
     int current_group = state.group;
     XkbLockGroup(display_, XkbUseCoreKbd, scan_code_info.group);
     
-    if (scan_code_info.modmask)
-        SendModifier(scan_code_info.modmask, is_down);
-    
     XTestFakeKeyEvent(display_, key, is_down, CurrentTime);
     XkbLockGroup(display_, XkbUseCoreKbd, current_group);
-    XSync(display_, False);
+    XSync(display_, True);
+    XFlush(display_);
 }
 
 void LinuxNative::SendModifier(int modmask, int is_press)
@@ -456,8 +456,7 @@ void LinuxNative::SendModifier(int modmask, int is_press)
             }
         }
     }
-
-  XFreeModifiermap(modifiers);
+    XFreeModifiermap(modifiers);
 }
 
 bool LinuxNative::ActivateWindow(Window window)
@@ -494,7 +493,6 @@ bool LinuxNative::ActivateWindow(Window window)
     {
         return False;
     }
-    auto root = RootWindow(display_, 0);
 
     if (EWMHIsSupported("_NET_WM_DESKTOP") == True
         && EWMHIsSupported("_NET_CURRENT_DESKTOP") == True) 
@@ -505,6 +503,7 @@ bool LinuxNative::ActivateWindow(Window window)
 
         if (nitems > 0)
         {
+            auto root = RootWindow(display_, 0);
             long desktop = *(long*)data;
             XEvent xev = {};
 
@@ -540,7 +539,7 @@ bool LinuxNative::ActivateWindow(Window window)
     return ret != BadWindow && ret != BadValue;
 }
 
-void LinuxNative::EnumAllWindow(EnumWindowType enumWinProc, void* userDefinedPtr)
+void LinuxNative::EnumAllWindow(EnumWindowProc enumWinProc, void* userDefinedPtr)
 {
     std::function<void(Window)> IterateChildWindows;
 
@@ -570,9 +569,7 @@ void LinuxNative::EnumAllWindow(EnumWindowType enumWinProc, void* userDefinedPtr
             XFree(children);
     };
 
-    int (*old_error_handler)(Display *dpy, XErrorEvent *xerr);
-
-    old_error_handler = XSetErrorHandler(IgnoreBadWindow);
+    auto old_error_handler = XSetErrorHandler(IgnoreBadWindow);
 
 	const int screencount = ScreenCount(display_);
     for (int i = 0; i < screencount; i++) 
