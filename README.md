@@ -39,7 +39,7 @@ This is a simple learning project so, things might get broken. Since it simulate
 * Windows: 
   - Visual Studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
 * Linux:
-  - Insall libx11-dev, mesa-common-dev and libxtst-dev on your Linux machine.
+  - Install libx11-dev, mesa-common-dev and libxtst-dev on your Linux machine.
     - Run `sudo apt install libx11-dev mesa-common-dev libxtst-dev` on Debian/Ubuntu based Linux distros.
 * Other OSs you need to implement all these stuff listed [here](#for-linuxwayland-window-manager-and-other-oss--everything-is-implemented-for-linux-x11-window-manager).
 
