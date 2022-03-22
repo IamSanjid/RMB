@@ -41,9 +41,9 @@ This is a simple learning project so, things might get broken. Since it simulate
 * Linux:
   - Install libx11-dev, mesa-common-dev and libxtst-dev on your Linux machine.
     - Run `sudo apt install libx11-dev mesa-common-dev libxtst-dev` on Debian/Ubuntu based Linux distros.
-* Other OSs you need to implement all these stuff listed [here](#for-linuxwayland-window-manager-and-other-oss--everything-is-implemented-for-linux-x11-window-manager).
+* Other OSs you need to implement all these stuff listed [here](#for-other-platforms).
 
-# For Linux(Wayland Window manager) and other OSs | Everything is implemented For Linux X11 Window manager
+# For Other Platforms
 1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys and listened to `WM_HOTKEY` messages on that window. `XGrabKey` is used for X11 window manager.
 2. Then you need to implement how to simulate the key presses on the corresponding OS, for windows `SendInput` was enough. For X11 wm `XTestFakeKeyEvent` API was used.
 3. You now need to implement how to get the cursor position, for Windows `GetCursorPos` and for X11 wm `XQueryPointer` API(s) was used.
