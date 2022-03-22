@@ -5,9 +5,8 @@ In short, this lets you use your mouse to change the in-game camera view positio
 **_For some games?_**<br/>
 Well, if your desired game changes its camera view position according to your right-stick/left-stick/d-pad input and if you've bound these inputs with your keyboard then this can help you.
 
-
 # Requirements
-Just be able to run Ryujinx and for now this only works for Windows.
+Just be able to run Ryujinx and for now this only works for Windows and Linux(X11 Window Manager).
 But the code structure was designed to work on all the platforms Ryujinx supports, only needs to support native API(s) for specific platforms.
 
 # How to configure?
@@ -29,7 +28,7 @@ This is a simple learning project so, things might get broken. Since it simulate
 **_Default Panning Toggle Hotkey is Ctrl+F9 if any other application uses the same hotkey it will fail so make sure to choose a unique hotkey or just close other applications._**
 
 # How does this work?
-1. It uses GLFW(https://www.glfw.org/) to monitor your mouse position changes. It creates an invisible window size of the primary monitor's screen. Then in its own thread checks if the mouse position was changed.
+1. It uses [GLFW](https://www.glfw.org/) and [ImGui](https://github.com/ocornut/imgui) for the UI part. It directly calls Native function to get the cursor position.
 2. It always sets the mouse position to the center of the screen and if the user moves the mouse then it calculates which direction it was moved from the center of the screen and simulates key presses.
 
 # Dependencies
@@ -37,25 +36,30 @@ This is a simple learning project so, things might get broken. Since it simulate
 * [ImGui](https://github.com/ocornut/imgui) For simple or more like lazy UI.
 
 # How to Build
-* On windows, visual studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
-* For Linux and other OSs you need to implement all these stuff listed [here](#for-linux-and-other-oss). A GLFW 3.3+ build for the corresponding OS and ImGui.
-  - Btw for Linux make sure you've installed all x11 libs more specifically run `pkg-config --libs x11 xi xfixes` and make sure everything is installed.
+* Windows: 
+  - Visual Studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
+* Linux:
+  - Install libx11-dev, mesa-common-dev and libxtst-dev on your Linux machine.
+    - Run `sudo apt install libx11-dev mesa-common-dev libxtst-dev` on Debian/Ubuntu based Linux distros.
+* Other OSs you need to implement all these stuff listed [here](#for-other-platforms).
 
-# For Linux and other OSs (For Linux most of the API(s) are implemented)
-1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys and listened to `WM_HOTKEY` messages on that window. On Linux, I think something similar can be done using `XGrabKey`(X11 window manager) I don't have much experience.
-2. Then you need to implement how to simulate the key presses on the corresponding OS, for windows `SendInput` was enough. On Linux, I think you can look for `xdotool`, how it works.
-3. After that you need to implement how to set your cursor position, for Windows `SetCursorPos` API was used same effect can be done by using `SendInput`. For Linux again look how `xdotool` works.
-4. (Optional) If you want to hide your cursor during panning mode you need to actually change the cursor image file your system currently using, for Windows `SetSystemCursor` API is used. For Linux google can help I suppose.
-5. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` API was used and I think on Linux `xdotool` should be able to help again.
+# For Other Platforms
+1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys and listened to `WM_HOTKEY` messages on that window. `XGrabKey` is used for X11 window manager.
+2. Then you need to implement how to simulate the key presses on the corresponding OS, for windows `SendInput` was enough. For X11 wm `XTestFakeKeyEvent` API was used.
+3. You now need to implement how to get the cursor position, for Windows `GetCursorPos` and for X11 wm `XQueryPointer` API(s) was used.
+4. After that you need to implement how to set your cursor position, for Windows `SetCursorPos` API was used, same effect can be done by using `SendInput`. For X11 wm `XWarpPointer` did the job.
+5. (Optional) If you want to hide your cursor during panning mode you need to actually change the cursor image file your system currently using, for Windows `SetSystemCursor` API is used. For X11 wm simple `XFixesHideCursor`/`XFixesShowCursor` API(s) did the job.
+6. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` API was used and for X11 wm `XSendEvent` was able to help. On both platforms you have to check all the visible windows and you can either check class name/title name to select your target processs and send Focus/Active action to it.
 
 Check `native.h` a simple interface that was used as a bridge to call these native API(s).<br/>
 Use this as a base class for your specific OS implementation.
 
 # FIN
-Again this was a learning project, if anyone wants to help me improve I would really appreciate it. If you find any bugs or issues let me know by opening an issue. Feel free to pull any request. Thank you for your time.
+Again this was a learning project, if anyone wants to help me improve I would really appreciate it. If you find any bugs or issues let me know by opening an issue. Feel free to pull any request. Thank you for your time.<br/>
+
+[Release](https://github.com/IamSanjid/RMB/releases/tag/1.0.0)
 
 # Demo
-[RMB Windows Demo](https://github.com/IamSanjid/RMB/files/8288042/RMB-demo.zip)
 
 https://user-images.githubusercontent.com/38256064/158840429-af35e4d8-bb21-4f9f-9e72-05ce3122eaf1.mp4
 
