@@ -217,6 +217,7 @@ bool LinuxNative::SetFocusOnProcess(const std::string& process_name)
     {
         LinuxNative* sender_;
         const char* target_proc_name;
+        bool result = false;
     };
     EnumWind enum_wind{ this, process_name.c_str() };
 
@@ -249,7 +250,7 @@ bool LinuxNative::SetFocusOnProcess(const std::string& process_name)
                 }
                 free(atom_window_type);
 
-                ew->sender_->ActivateWindow(window);
+                ew->result = ew->sender_->ActivateWindow(window);
                 return;
             }
             XFree(classhint.res_name);
@@ -257,7 +258,7 @@ bool LinuxNative::SetFocusOnProcess(const std::string& process_name)
         }
     }, (void*)&enum_wind);
     
-	return false;
+	return enum_wind.result;
 }
 
 void LinuxNative::CursorHide(bool hide)
@@ -283,6 +284,7 @@ void LinuxNative::CursorHide(bool hide)
             XGrabPointer(display_, root_window, True, 0, GrabModeAsync, GrabModeAsync, root_window, cursor, CurrentTime);*/
             XFixesHideCursor(display_, root_window);
         }
+        is_hidden = true;
     }
     else if (is_hidden)
     {
@@ -293,6 +295,7 @@ void LinuxNative::CursorHide(bool hide)
             XUngrabPointer(display_, CurrentTime);*/
             XFixesShowCursor(display_, root_window);
         }
+        is_hidden = false;
     }
 
     XSync(display_, False);

@@ -26,7 +26,6 @@
 
 #include "Config.h"
 #include "views/MainView.h"
-#include "native.h"
 #include "mouse.h"
 
 #include <thread>
