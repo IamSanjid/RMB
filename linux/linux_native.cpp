@@ -39,7 +39,6 @@ LinuxNative::LinuxNative()
     int keycode_low, keycode_high, keysyms_per_keycode;
 
     XDisplayKeycodes(display_, &keycode_low, &keycode_high);
-    XModifierKeymap *modmap = XGetModifierMapping(display_);
     KeySym *keysyms = XGetKeyboardMapping(display_, keycode_low,
                                     keycode_high - keycode_low + 1,
                                     &keysyms_per_keycode);
@@ -70,14 +69,24 @@ LinuxNative::LinuxNative()
                         break;
                     }
                 }
-
-                scan_code_infos_[keycode] = { group, modmask | KeyCodeToModifier(modmap, keycode), keysym };
+                /* keep one version without any modifier mask */
+                auto exists = scan_code_infos_.find(keycode);
+                if (exists != scan_code_infos_.cend())
+                {
+                    if (exists->second.modmask && !modmask)
+                    {
+                        scan_code_infos_[keycode] = { group, modmask | KeyCodeToModifier(keycode), keysym };
+                    }
+                }
+                else
+                {
+                    scan_code_infos_[keycode] = { group, modmask | KeyCodeToModifier(keycode), keysym };
+                }
             }
         }
     }
 
     XkbFreeClientMap(desc, 0, 1);
-    XFreeModifiermap(modmap);
 }
 
 LinuxNative::~LinuxNative()
@@ -103,6 +112,7 @@ void LinuxNative::Update()
         switch (event.type)
         {
             case KeyPress:
+            {
                 const auto& key_data = event.xkey;
                 uint32_t hash = HashRegKey(key_data.keycode, key_data.state & ~(LockMask | Mod2Mask));
                 auto matched_reg_key_it = registered_keys_.find(hash);
@@ -111,7 +121,18 @@ void LinuxNative::Update()
                     const auto& matched_reg_key = matched_reg_key_it->second;
                     EventBus::Instance().publish(new HotkeyEvent(matched_reg_key.key, matched_reg_key.modifier));
                 }
+                else
+                {
+                    hash = HashRegKey(key_data.keycode, AnyModifier);
+                    matched_reg_key_it = registered_keys_.find(hash);
+                    if (matched_reg_key_it != registered_keys_.cend())
+                    {
+                        const auto& matched_reg_key = matched_reg_key_it->second;
+                        EventBus::Instance().publish(new HotkeyEvent(matched_reg_key.key, matched_reg_key.modifier));
+                    }
+                }
                 break;
+            }
         }
     }
 }
@@ -120,11 +141,16 @@ void LinuxNative::RegisterHotKey(uint32_t key, uint32_t modifier)
 {
     if (scan_code_infos_.find(key) == scan_code_infos_.cend()) 
         return;
-
-    if (modifier != 0 && scan_code_infos_.find(modifier) == scan_code_infos_.cend())
-        return;
     
-    uint32_t modmask = modifier != 0 ? scan_code_infos_[modifier].modmask : 0;
+    uint32_t modmask = AnyModifier;
+    if (modifier != 0)
+    {
+        auto found = scan_code_infos_.find(modifier);
+        if (found == scan_code_infos_.cend())
+            return;
+        modmask = found->second.modmask;
+    }
+
     uint32_t hash = HashRegKey(key, modmask);
     if (registered_keys_.find(hash) != registered_keys_.cend())
         return;
@@ -152,10 +178,15 @@ void LinuxNative::UnregisterHotKey(uint32_t key, uint32_t modifier)
     if (scan_code_infos_.find(key) == scan_code_infos_.cend()) 
         return;
 
-    if (modifier != 0 && scan_code_infos_.find(modifier) == scan_code_infos_.cend())
-        return;
-    
-    uint32_t modmask = modifier != 0 ? scan_code_infos_[modifier].modmask : 0;
+    uint32_t modmask = AnyModifier;
+    if (modifier != 0)
+    {
+        auto found = scan_code_infos_.find(modifier);
+        if (found == scan_code_infos_.cend())
+            return;
+        modmask = found->second.modmask;
+    }
+
     uint32_t hash = HashRegKey(key, modmask);
     if (registered_keys_.find(hash) == registered_keys_.cend())
     {
@@ -397,8 +428,10 @@ uint32_t LinuxNative::HashRegKey(int key, uint32_t modmask)
     return key * 0x7FFFu + modmask;
 }
 
-uint32_t LinuxNative::KeyCodeToModifier(XModifierKeymap *modmap, KeyCode keycode)
+uint32_t LinuxNative::KeyCodeToModifier(KeyCode keycode)
 {
+    XModifierKeymap *modmap = XGetModifierMapping(display_);
+    uint32_t res = 0;
     for (int i = 0; i < 8; i++) 
     {
         for (int j = 0; j < modmap->max_keypermod && modmap->modifiermap[(i * modmap->max_keypermod) + j]; j++) 
@@ -407,19 +440,21 @@ uint32_t LinuxNative::KeyCodeToModifier(XModifierKeymap *modmap, KeyCode keycode
             {
                 switch (i) 
                 {
-                    case ShiftMapIndex: return ShiftMask; break;
-                    case LockMapIndex: return LockMask; break;
-                    case ControlMapIndex: return ControlMask; break;
-                    case Mod1MapIndex: return Mod1Mask; break;
-                    case Mod2MapIndex: return Mod2Mask; break;
-                    case Mod3MapIndex: return Mod3Mask; break;
-                    case Mod4MapIndex: return Mod4Mask; break;
-                    case Mod5MapIndex: return Mod5Mask; break;
+                    case ShiftMapIndex: res = ShiftMask; goto RET;
+                    case LockMapIndex: res =  LockMask; goto RET;
+                    case ControlMapIndex: res =  ControlMask; goto RET;
+                    case Mod1MapIndex: res =  Mod1Mask; goto RET;
+                    case Mod2MapIndex: res =  Mod2Mask; goto RET;
+                    case Mod3MapIndex: res =  Mod3Mask; goto RET;
+                    case Mod4MapIndex: res =  Mod4Mask; goto RET;
+                    case Mod5MapIndex: res =  Mod5Mask; goto RET;
                 }
             }
         }
     }
-    return 0;
+    RET:
+    XFreeModifiermap(modmap);
+    return res;
 }
 
 void LinuxNative::SendKey(int key, bool is_down)
@@ -433,10 +468,18 @@ void LinuxNative::SendKey(int key, bool is_down)
     XkbGetState(display_, XkbUseCoreKbd, &state);
     int current_group = state.group;
     XkbLockGroup(display_, XkbUseCoreKbd, scan_code_info.group);
+
+    auto key_modifier = KeyCodeToModifier(key);
+    if (key_modifier)
+    {
+        SendModifier(key_modifier, is_down);
+        XFlush(display_);
+        return;
+    }
     
     XTestFakeKeyEvent(display_, key, is_down, CurrentTime);
     XkbLockGroup(display_, XkbUseCoreKbd, current_group);
-    XSync(display_, True);
+    XSync(display_, False);
     XFlush(display_);
 }
 

@@ -28,7 +28,7 @@ This is a simple learning project so, things might get broken. Since it simulate
 **_Default Panning Toggle Hotkey is Ctrl+F9 if any other application uses the same hotkey it will fail so make sure to choose a unique hotkey or just close other applications._**
 
 # How does this work?
-1. It uses [GLFW](https://www.glfw.org/) and [ImGui](https://github.com/ocornut/imgui) for the UI part. It directly calls Native function to get the cursor position.
+1. It uses [GLFW](https://www.glfw.org/) and [ImGui](https://github.com/ocornut/imgui) for the UI part. It directly calls Native functions to handle keyboard and mouse events.
 2. It always sets the mouse position to the center of the screen and if the user moves the mouse then it calculates which direction it was moved from the center of the screen and simulates key presses.
 
 # Dependencies
@@ -39,12 +39,13 @@ This is a simple learning project so, things might get broken. Since it simulate
 * Windows: 
   - Visual Studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
 * Linux:
-  - Install libx11-dev, mesa-common-dev and libxtst-dev on your Linux machine.
+  - Install libx11, mesa and libxtst libs on your Linux machine.
     - Run `sudo apt install libx11-dev mesa-common-dev libxtst-dev` on Debian/Ubuntu based Linux distros.
+    - Run `sudo pacman -Syu base-devel libx11 mesa libxtst` on Arch Linux based Linux distros.
 * Other OSs you need to implement all these stuff listed [here](#for-other-platforms).
 
 # For Other Platforms
-1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys and listened to `WM_HOTKEY` messages on that window. `XGrabKey` is used for X11 window manager.
+1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys for that window and listened to `WM_HOTKEY` messages on that window. `XGrabKey` is used for X11 window manager.
 2. Then you need to implement how to simulate the key presses on the corresponding OS, for windows `SendInput` was enough. For X11 wm `XTestFakeKeyEvent` API was used.
 3. You now need to implement how to get the cursor position, for Windows `GetCursorPos` and for X11 wm `XQueryPointer` API(s) was used.
 4. After that you need to implement how to set your cursor position, for Windows `SetCursorPos` API was used, same effect can be done by using `SendInput`. For X11 wm `XWarpPointer` did the job.

@@ -112,7 +112,7 @@ void Mouse::SetCamera(const double& sensitivity)
     int direction_x = Utils::sign(last_axis_change_.x);
     int direction_y = Utils::sign(last_axis_change_.y);
 
-    if (direction_x != 0.0 && dir.x < -0.01 || dir.x > 0.5)
+    if (direction_x != 0.0 && (dir.x < -0.01 || dir.x > 0.5))
     {
         int current_axis_timeout = direction_x == 1;
         int opposite_axis_timeout = direction_x != 1;
@@ -123,7 +123,7 @@ void Mouse::SetCamera(const double& sensitivity)
         axis_change_timeouts_[current_axis_timeout] += (std::abs(last_axis_change_.x) - axis_change_timeouts_[current_axis_timeout]);
     }
 
-    if (direction_y != 0.0 && dir.y < -0.01 || dir.y > 0.5)
+    if (direction_y != 0.0 && (dir.y < -0.01 || dir.y > 0.5))
     {
         int current_axis_timeout = 2 + (direction_y == 1);
         int opposite_axis_timeout = 2 + (direction_y != 1);
