@@ -40,9 +40,10 @@ This is a simple learning project so, things might get broken. Since it simulate
   - Visual Studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
 * Linux:
   - Install libx11, mesa and libxtst libs on your Linux machine.
-    - Run `sudo apt install libx11-dev mesa-common-dev libxtst-dev` on Debian/Ubuntu based Linux distros.
-    - Run `sudo pacman -Syu base-devel libx11 mesa libxtst` on Arch Linux based Linux distros.
-* Other OSs you need to implement all these stuff listed [here](#for-other-platforms).
+    - On Debian/Ubuntu based Linux distros run `sudo apt install libx11-dev mesa-common-dev libxtst-dev`.
+    - On Arch Linux based Linux distros run `sudo pacman -Syu base-devel libx11 mesa libxtst`.
+  - After installing these libs simply run `make` on the directory.
+* For other OSs/Platforms you need to implement all these stuff listed [here](#for-other-platforms). You also going to need GLFW 3.3+ lib for the corresponding platform/os.
 
 # For Other Platforms
 1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys for that window and listened to `WM_HOTKEY` messages on that window. `XGrabKey` is used for X11 window manager.
@@ -50,7 +51,7 @@ This is a simple learning project so, things might get broken. Since it simulate
 3. You now need to implement how to get the cursor position, for Windows `GetCursorPos` and for X11 wm `XQueryPointer` API(s) was used.
 4. After that you need to implement how to set your cursor position, for Windows `SetCursorPos` API was used, same effect can be done by using `SendInput`. For X11 wm `XWarpPointer` did the job.
 5. (Optional) If you want to hide your cursor during panning mode you need to actually change the cursor image file your system currently using, for Windows `SetSystemCursor` API is used. For X11 wm simple `XFixesHideCursor`/`XFixesShowCursor` API(s) did the job.
-6. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` API was used and for X11 wm `XSendEvent` was able to help. On both platforms you have to check all the visible windows and you can either check class name/title name to select your target processs and send Focus/Active action to it.
+6. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` API was used and for X11 wm `XSendEvent` was able to help. On both platforms you have to check all the visible windows and you can either check their class name/title name to select your target processs and send Focus/Active action.
 
 Check `native.h` a simple interface that was used as a bridge to call these native API(s).<br/>
 Use this as a base class for your specific OS implementation.
@@ -58,7 +59,7 @@ Use this as a base class for your specific OS implementation.
 # FIN
 Again this was a learning project, if anyone wants to help me improve I would really appreciate it. If you find any bugs or issues let me know by opening an issue. Feel free to pull any request. Thank you for your time.<br/>
 
-[Release](https://github.com/IamSanjid/RMB/releases/tag/1.0.0)
+You can download binaries for Windows and Linux from [releases](https://github.com/IamSanjid/RMB/releases/).
 
 # Demo
 
