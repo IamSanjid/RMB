@@ -338,8 +338,8 @@ void LinuxNative::GetMousePos(double* x_ret, double* y_ret)
     int def_x, def_y;
     if (GetDefaultScreenMousePos(&def_x, &def_y, NULL, NULL))
     {
-        *x_ret = (double)def_x;
-        *y_ret = (double)def_y;
+        *x_ret = static_cast<double>(def_x);
+        *y_ret = static_cast<double>(def_y);
     }
     else
     {
