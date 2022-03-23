@@ -164,13 +164,16 @@ void Application::Run()
         Native::GetInstance()->Update();
         EventBus::Instance().update();
 
+        glfwPollEvents();
+
+        if (panning_started_)
+        {
+            continue;
+        }
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        if (panning_started_ && !glfwGetWindowAttrib(main_window_, GLFW_ICONIFIED))
-        {
-            glfwIconifyWindow(main_window_);
-        }
 
         main_view_->Show();
 
@@ -183,7 +186,6 @@ void Application::Run()
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(main_window_);
-        glfwPollEvents();
     }
 }
 
@@ -205,21 +207,22 @@ void Application::Reconfig()
 
 void Application::TogglePanning()
 {
-    if (Config::Current()->AUTO_FOCUS_RYU && !Native::GetInstance()->SetFocusOnProcess("Ryujinx"))
-        return;
     if (!panning_started_)
     {
+        if (Config::Current()->AUTO_FOCUS_RYU && !Native::GetInstance()->SetFocusOnProcess("Ryujinx"))
+            return;
         panning_started_ = true;
         std::thread(&Application::StartPanning, this).detach();
 #if !defined(_DEBUG)
         if (Config::Current()->HIDE_MOUSE)
             Native::GetInstance()->CursorHide(true);
 #endif
+        glfwIconifyWindow(main_window_);
     }
     else
     {
         panning_started_ = false;
-        Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[0], 4);
+        mouse_->StopPanning();
         Native::GetInstance()->CursorHide(false);
     }
 }
@@ -238,7 +241,6 @@ void Application::StartPanning()
     /* thread looks for mouse position change..  */
     double last_cursor_x = 0, last_cursor_y = 0;
     bool mouse_change_started = false;
-    bool focused_emu = false;
 
     while (panning_started_)
     {
@@ -254,8 +256,6 @@ void Application::StartPanning()
             mouse_change_started = true;
         }
 
-        if (Config::Current()->AUTO_FOCUS_RYU)
-            focused_emu = focused_emu || Native::GetInstance()->SetFocusOnProcess("Ryujinx");
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }

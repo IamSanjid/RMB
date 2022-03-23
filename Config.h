@@ -12,16 +12,16 @@ public:
 	const uint32_t WIDTH = 600;
 	const uint32_t HEIGHT = 400;
 
-	uint32_t TOGGLE_MODIFIER = 341; // GLFW_KEY_LEFT_CONTROL
-	uint32_t TOGGLE_KEY = 298; // GLFW_KEY_F9
+	uint32_t TOGGLE_MODIFIER;
+	uint32_t TOGGLE_KEY;
 
 	uint32_t* RIGHT_STICK_KEYS;
 
-	double CAMERA_UPDATE_TIME = 960.0;
-	double SENSITIVITY = 10.0;
+	double CAMERA_UPDATE_TIME;
+	double SENSITIVITY;
 
-	bool HIDE_MOUSE = true;
-	bool AUTO_FOCUS_RYU = true;
+	bool HIDE_MOUSE;
+	bool AUTO_FOCUS_RYU;
 
 private:
 	Config();

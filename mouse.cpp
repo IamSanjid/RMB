@@ -2,6 +2,7 @@
 #include "Config.h"
 #include "native.h"
 #include "Application.h"
+#include "Utils.h"
 #include <thread>
 #include <cmath>
 
@@ -10,57 +11,32 @@ void Mouse::MouseMoved(double x, double y, double center_x, double center_y)
     auto mouse_change = vd2d{ x, y } - vd2d{ center_x, center_y };
 
     const auto move_distance = mouse_change.mag();
+    mouse_panning_timeout_ = 0;
 
-	if (move_distance == 0 || key_up_time_ > 0.0)
+	if (move_distance == 0)
 	{
 		return;
 	}
 
     /* found these values by testing with PLA only lmao somebody help :") */
     const auto update_time = Config::Current()->CAMERA_UPDATE_TIME;
-    const auto sensitivity = Config::Current()->SENSITIVITY * 0.022;
 
     /*const auto last_move_distance = last_mouse_change.mag();
     auto angle = std::asin(std::abs(last_mouse_change.y) / last_move_distance) * 180 / 3.141593;
 
     auto time = angle * (angle_update_time / 90.0);*/
 
-    const auto dir = mouse_change.norm();
-    const auto x_percentage = (std::abs(mouse_change.x) / move_distance) * 0.96;
-    const auto y_percentage = (std::abs(mouse_change.y) / move_distance) * 0.96;
+    const auto axis_change = mouse_change.norm() * update_time * 0.96;
 
-    double time = 0.0;
+    last_axis_change_ = (last_axis_change_ * 0.91) + (axis_change * 0.09);
 
-    if (dir.x < -0.01)
+    if (last_axis_change_.mag() < 1.0)
     {
-        time += update_time * x_percentage * sensitivity;
-        keys_.push_back(Config::Current()->RIGHT_STICK_KEYS[0]);
-    }
-    else if (dir.x > 0.5)
-    {
-        time += update_time * x_percentage * sensitivity;
-        keys_.push_back(Config::Current()->RIGHT_STICK_KEYS[1]);
-    }
-
-    if (dir.y < -0.01)
-    {
-        time += update_time * y_percentage * sensitivity;
-        keys_.push_back(Config::Current()->RIGHT_STICK_KEYS[2]);
-    }
-    else if (dir.y > 0.5)
-    {
-        time += update_time * y_percentage * sensitivity;
-        keys_.push_back(Config::Current()->RIGHT_STICK_KEYS[3]);
-    }
-    
-    if (time > 0.0)
-    {
-        key_up_time_ = Application::GetTotalRunningTime() + time;
-        Native::GetInstance()->SendKeysDown(&keys_[0], keys_.size());
+        last_axis_change_ = axis_change / axis_change.mag();
     }
 
 #if _DEBUG
-    fprintf(stdout, "mouse changed x: %f , y: %f - distance: %f, time: %f, keys: %d\n", mouse_change.x, mouse_change.y, mouse_change.mag(), time, (int)keys_.size());
+    fprintf(stdout, "axis_change: %f, %f\n", axis_change.x, axis_change.y);
 #endif
 }
 
@@ -97,14 +73,85 @@ void Mouse::TurnTest(int delay, int test_type)
 
 void Mouse::Update()
 {
-    const auto update_time = 1.0;
+    const auto update_time = 10;
+    const auto sensitivity = Config::Current()->SENSITIVITY * 0.022;
     
-    if (keys_.size() > 0 && key_up_time_ < Application::GetTotalRunningTime())
+    for (int i = 0; i < 4; i++)
     {
-        Native::GetInstance()->SendKeysUp(&keys_[0], keys_.size());
-        key_up_time_ = 0.0;
-        keys_.clear();
+        axis_change_timeouts_[i] *= sensitivity;
+    }
+    last_axis_change_ *= sensitivity;
+
+    if (mouse_panning_timeout_++ > 20)
+    {
+        StopPanning();
     }
 
-    std::this_thread::sleep_for(std::chrono::duration<double, std::ratio<1, 1000>>(update_time));
+    SetCamera(sensitivity);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(update_time));
+}
+
+void Mouse::StopPanning()
+{
+    last_axis_change_ = {};
+    memset(axis_change_timeouts_, 0, sizeof(double) * 4);
+    for (int i = 0; i < 4; i++)
+    {
+        if (release_timeouts_[i] > 0.0)
+        {
+            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[i], 1);
+            release_timeouts_[i] = 0.0;
+        }
+    }
+}
+
+void Mouse::SetCamera(const double& sensitivity)
+{
+    const auto dir = last_axis_change_.norm();
+    int direction_x = Utils::sign(last_axis_change_.x);
+    int direction_y = Utils::sign(last_axis_change_.y);
+
+    if (direction_x != 0.0 && dir.x < -0.01 || dir.x > 0.5)
+    {
+        int current_axis_timeout = direction_x == 1;
+        int opposite_axis_timeout = direction_x != 1;
+
+        axis_change_timeouts_[opposite_axis_timeout] = 0.0;
+        release_timeouts_[opposite_axis_timeout] = 0.1;
+
+        axis_change_timeouts_[current_axis_timeout] += (std::abs(last_axis_change_.x) - axis_change_timeouts_[current_axis_timeout]);
+    }
+
+    if (direction_y != 0.0 && dir.y < -0.01 || dir.y > 0.5)
+    {
+        int current_axis_timeout = 2 + (direction_y == 1);
+        int opposite_axis_timeout = 2 + (direction_y != 1);
+
+        axis_change_timeouts_[opposite_axis_timeout] = 0.0;
+        release_timeouts_[opposite_axis_timeout] = 0.1;
+
+        axis_change_timeouts_[current_axis_timeout] += (std::abs(last_axis_change_.y) - axis_change_timeouts_[current_axis_timeout]);
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (axis_change_timeouts_[i] > sensitivity)
+        {
+            if (release_timeouts_[i] == 0.0)
+            {
+                Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[i], 1);
+                release_timeouts_[i] = Application::GetTotalRunningTime() + axis_change_timeouts_[i];
+            }
+            else
+            {
+                release_timeouts_[i] += axis_change_timeouts_[i];
+            }
+        }
+        else if (release_timeouts_[i] > 0.0 && release_timeouts_[i] < Application::GetTotalRunningTime())
+        {
+            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[i], 1);
+            release_timeouts_[i] = 0.0;
+        }
+    }
 }

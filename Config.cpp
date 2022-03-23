@@ -5,11 +5,20 @@ Config* Config::default_instance_ = nullptr;
 
 Config::Config()
 {
+	TOGGLE_MODIFIER = GLFW_KEY_LEFT_CONTROL;
+	TOGGLE_KEY = GLFW_KEY_F9;
+
 	/* default ryujinx right stick keys j = left, l = right, i = up, k = down */
 	RIGHT_STICK_KEYS = new uint32_t[4]
 	{
 		GLFW_KEY_J, GLFW_KEY_L, GLFW_KEY_I, GLFW_KEY_K
 	};
+
+	CAMERA_UPDATE_TIME = 980.0;
+	SENSITIVITY = 10.0;
+
+	HIDE_MOUSE = true;
+	AUTO_FOCUS_RYU = true;
 }
 
 Config* Config::Default()

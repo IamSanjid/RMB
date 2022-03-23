@@ -21,7 +21,6 @@ WinNative* WinNative::instance_ = nullptr;
 WinNative::WinNative()
 /*: kbd_hook_(SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, NULL)),
 	last_key_({})*/
-	: mouse_hook_(SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, NULL, NULL))
 {
 	HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
 	default_arrow_ = CopyCursor(arrowHandle);
@@ -53,8 +52,6 @@ WinNative::~WinNative()
 {
 	/*if (kbd_hook_)
 		UnhookWindowsHookEx(kbd_hook_);*/
-	if (mouse_hook_)
-		UnhookWindowsHookEx(mouse_hook_);
 	if (reg_window_)
 	{
 		DestroyWindow(reg_window_);
@@ -143,10 +140,17 @@ void WinNative::SetMousePos(double x, double y)
 
 void WinNative::GetMousePos(double* x_ret, double* y_ret)
 {
-	if (last_mouse_pos_.x == -1)
-		GetCursorPos(&last_mouse_pos_);
-	*x_ret = static_cast<double>(last_mouse_pos_.x);
-	*y_ret = static_cast<double>(last_mouse_pos_.y);
+	POINT pos{};
+	if (GetCursorPos(&pos))
+	{
+		*x_ret = static_cast<double>(pos.x);
+		*y_ret = static_cast<double>(pos.y);
+	}
+	else
+	{
+		*x_ret = 0.0;
+		*y_ret = 0.0;
+	}
 }
 
 bool WinNative::SetFocusOnProcess(const std::string& process_name)
@@ -404,16 +408,6 @@ LRESULT WinNative::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 */
-
-LRESULT WinNative::LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	if (nCode == HC_ACTION)
-	{
-		if (wParam == WM_MOUSEMOVE)
-			instance_->last_mouse_pos_ = ((MOUSEHOOKSTRUCT*)lParam)->pt;
-	}
-	return CallNextHookEx(nullptr, nCode, wParam, lParam);
-}
 
 LRESULT WinNative::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
