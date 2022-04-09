@@ -35,6 +35,7 @@
     <ClCompile Include="views\MainView.cpp">
       <Filter>views</Filter>
     </ClCompile>
+    <ClCompile Include="controller.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imgui_impl_glfw.h">
@@ -92,6 +93,7 @@
     <ClInclude Include="views\MainView.h">
       <Filter>views</Filter>
     </ClInclude>
+    <ClInclude Include="controller.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">

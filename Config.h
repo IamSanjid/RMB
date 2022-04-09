@@ -17,8 +17,8 @@ public:
 
 	uint32_t* RIGHT_STICK_KEYS;
 
-	double CAMERA_UPDATE_TIME;
-	double SENSITIVITY;
+	float CAMERA_UPDATE_TIME;
+	float SENSITIVITY;
 
 	bool HIDE_MOUSE;
 	bool AUTO_FOCUS_RYU;

@@ -25,9 +25,7 @@ WinNative::WinNative()
 	HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
 	default_arrow_ = CopyCursor(arrowHandle);
 
-	instance_ = this;
-
-	WNDCLASSEXW wcex;
+	WNDCLASSEXW wcex{};
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
@@ -133,23 +131,23 @@ void WinNative::SendKeysUp(uint32_t* keys, size_t count)
 	SendInput((UINT)count, &input[0], (UINT)sizeof(INPUT));
 }
 
-void WinNative::SetMousePos(double x, double y)
+void WinNative::SetMousePos(int x, int y)
 {
-	::SetCursorPos((int)x, (int)y);
+	::SetCursorPos(x, y);
 }
 
-void WinNative::GetMousePos(double* x_ret, double* y_ret)
+void WinNative::GetMousePos(int* x_ret, int* y_ret)
 {
 	POINT pos{};
 	if (GetCursorPos(&pos))
 	{
-		*x_ret = static_cast<double>(pos.x);
-		*y_ret = static_cast<double>(pos.y);
+		*x_ret = static_cast<int>(pos.x);
+		*y_ret = static_cast<int>(pos.y);
 	}
 	else
 	{
-		*x_ret = 0.0;
-		*y_ret = 0.0;
+		*x_ret = 0;
+		*y_ret = 0;
 	}
 }
 

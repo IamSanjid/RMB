@@ -23,8 +23,8 @@ public:
 	void UnregisterHotKey(uint32_t key, uint32_t modifier) override;
 	void SendKeysDown(uint32_t* keys, size_t count) override;
 	void SendKeysUp(uint32_t* keys, size_t count) override;
-	void SetMousePos(double x, double y) override;
-	void GetMousePos(double* x_ret, double* y_ret) override;
+	void SetMousePos(int x, int y) override;
+	void GetMousePos(int* x_ret, int* y_ret) override;
 	bool SetFocusOnProcess(const std::string& process_name) override;
 	void CursorHide(bool hide) override;
 	void Update() override {};

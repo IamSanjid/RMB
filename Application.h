@@ -7,6 +7,7 @@ struct GLFWwindow;
 struct HotkeyEvent;
 class MainView;
 class Mouse;
+class Controller;
 
 class Application
 {
@@ -40,6 +41,7 @@ private:
 	GLFWwindow* main_window_ = nullptr;
 	MainView* main_view_ = nullptr;
 	Mouse* mouse_;
+	Controller* controller_;
 
 	bool is_running_ = false;
 	bool panning_started_ = false;

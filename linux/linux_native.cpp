@@ -225,12 +225,12 @@ void LinuxNative::SendKeysUp(uint32_t* keys, size_t count)
     XFlush(display_);
 }
 
-void LinuxNative::SetMousePos(double x, double y)
+void LinuxNative::SetMousePos(int x, int y)
 {
     int screen = -1;
 
     GetDefaultScreenMousePos(NULL, NULL, &screen, NULL);
-    XWarpPointer(display_, None, RootWindow(display_, screen), 0, 0, 0, 0, (int)x, (int)y);
+    XWarpPointer(display_, None, RootWindow(display_, screen), 0, 0, 0, 0, x, y);
     XFlush(display_);
 }
 
@@ -333,18 +333,18 @@ void LinuxNative::CursorHide(bool hide)
     XFlush(display_);
 }
 
-void LinuxNative::GetMousePos(double* x_ret, double* y_ret)
+void LinuxNative::GetMousePos(int* x_ret, int* y_ret)
 {
     int def_x, def_y;
     if (GetDefaultScreenMousePos(&def_x, &def_y, NULL, NULL))
     {
-        *x_ret = static_cast<double>(def_x);
-        *y_ret = static_cast<double>(def_y);
+        *x_ret = def_x;
+        *y_ret = def_y;
     }
     else
     {
-        *x_ret = 0.0;
-        *y_ret = 0.0;
+        *x_ret = 0;
+        *y_ret = 0;
     }
 }
 

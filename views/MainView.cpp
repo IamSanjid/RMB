@@ -137,10 +137,10 @@ void MainView::Show()
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Tries to focus Ryujinx after enabling mouse panning.");
 
-    if (ImGui::InputDouble("Sensitivity", &Config::Current()->SENSITIVITY, 0.5, 0.0, "%0.3f"))
+    if (ImGui::InputFloat("Sensitivity", &Config::Current()->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
     {
-        if (Config::Current()->SENSITIVITY < 0.50)
-            Config::Current()->SENSITIVITY = 0.50;
+        if (Config::Current()->SENSITIVITY < 0.5f)
+            Config::Current()->SENSITIVITY = 0.5f;
     }
 
     if (ImGui::IsItemHovered())
@@ -149,10 +149,10 @@ void MainView::Show()
     ImGui::Text("Camera Update Time(ms):");
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Base camera update time, the lower the slower it will update.\nKinda like sensitivity but not recommended to change.\nBut you may need to change it for some games.");
-    if (ImGui::InputDouble(" ", &Config::Current()->CAMERA_UPDATE_TIME, 10.0, 0.0, "%0.3f"))
+    if (ImGui::InputFloat(" ", &Config::Current()->CAMERA_UPDATE_TIME, 0.5f, 0.0f, "%0.3f"))
     {
-        if (Config::Current()->CAMERA_UPDATE_TIME < 100.0)
-            Config::Current()->CAMERA_UPDATE_TIME = 100.0;
+        if (Config::Current()->CAMERA_UPDATE_TIME < 0.5f)
+            Config::Current()->CAMERA_UPDATE_TIME = 0.5f;
     }
 
     ImGui::NewLine();

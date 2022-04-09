@@ -27,6 +27,7 @@
 #include "Config.h"
 #include "views/MainView.h"
 #include "mouse.h"
+#include "controller.h"
 
 #include <thread>
 #include <stdio.h>
@@ -47,7 +48,7 @@ Application* Application::GetInstance()
 double Application::GetTotalRunningTime()
 {
     typedef std::chrono::high_resolution_clock Time;
-    typedef std::chrono::duration<double, std::ratio<1, 1000>> fmsec;
+    typedef std::chrono::duration<double, std::milli> fmsec;
 
     static auto starting_time = Time::now().time_since_epoch();
 
@@ -75,6 +76,7 @@ Application::~Application()
 
     glfwDestroyWindow(main_window_);
     glfwTerminate();
+    delete controller_;
     delete mouse_;
     delete main_view_;
     main_window_ = nullptr;
@@ -120,16 +122,19 @@ bool Application::Initialize(const char* name, uint32_t width, uint32_t height)
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
     main_window_ = glfwCreateWindow(width, height, name, NULL, NULL);
-    mouse_ = new Mouse();
     if (main_window_ == NULL)
         return false;
+    
+    controller_ = new Controller();
+    mouse_ = new Mouse();
+    
     glfwMakeContextCurrent(main_window_);
     glfwSwapInterval(1);
     glfwSetKeyCallback(main_window_, OnKeyCallback);
 
     Reconfig();
 #if _DEBUG
-    Native::GetInstance()->RegisterHotKey(glfwGetKeyScancode(GLFW_KEY_D), glfwGetKeyScancode(GLFW_KEY_LEFT_SUPER));
+    Native::GetInstance()->RegisterHotKey(glfwGetKeyScancode(GLFW_KEY_T), glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL));
 #endif
 
     IMGUI_CHECKVERSION();
@@ -155,7 +160,8 @@ void Application::Run()
     {
         while (is_running_)
         {
-            mouse_->Update();
+            controller_->Update();
+            mouse_->Update(controller_);
         }
     }).detach();
 
@@ -236,23 +242,23 @@ void Application::StartPanning()
 
     glfwGetMonitorPos(monitor, &monitorX, &monitorY);
 
-    double center_x = videoMode->width / 2.0, center_y = videoMode->height / 2.0;
+    int center_x = videoMode->width / 2, center_y = videoMode->height / 2;
 
     /* thread looks for mouse position change..  */
-    double last_cursor_x = 0, last_cursor_y = 0;
+    int last_cursor_x = 0, last_cursor_y = 0;
     bool mouse_change_started = false;
 
     while (panning_started_)
     {
-        double x = 0, y = 0;
+        int x = 0, y = 0;
         Native::GetInstance()->GetMousePos(&x, &y);
 
         if (x != last_cursor_x || y != last_cursor_y)
         {
+            last_cursor_x = x; last_cursor_y = y;
             Native::GetInstance()->SetMousePos(center_x, center_y);
             if (mouse_change_started)
                 mouse_->MouseMoved(x, y, center_x, center_y);
-            last_cursor_x = x; last_cursor_y = y;
             mouse_change_started = true;
         }
 
@@ -264,17 +270,9 @@ void Application::OnHotkey(HotkeyEvent* evt)
 {
 #if _DEBUG
     fprintf(stdout, "hot_key: (%d, %d)\n", evt->key, evt->modifier);
-    if ((int)evt->key == glfwGetKeyScancode(GLFW_KEY_D) && (int)evt->modifier == glfwGetKeyScancode(GLFW_KEY_LEFT_SUPER))
+    if ((int)evt->key == glfwGetKeyScancode(GLFW_KEY_T) && (int)evt->modifier == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL))
     {    
-        //mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
-        //std::this_thread::sleep_for(std::chrono::seconds(3));
-        uint32_t char_ = Config::Current()->RIGHT_STICK_KEYS[0];
-        Native::GetInstance()->SendKeysDown(&char_, 1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        Native::GetInstance()->SendKeysUp(&char_, 1);
-        fprintf(stdout, "SENT!\n");
-        /*Native::GetInstance()->CursorHide(main_view_->test_type == 0);
-        main_view_->test_type ^= 1;*/
+        mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
     }
 #endif
     if (evt->key == Config::Current()->TOGGLE_KEY && evt->modifier == Config::Current()->TOGGLE_MODIFIER)
