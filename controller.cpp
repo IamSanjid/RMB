@@ -14,83 +14,66 @@ const float range = 1.0f;
 const float threshold = 0.5f;
 const float offset = 0.0f;
 
-constexpr int left = 0;
-constexpr int right = 1;
-constexpr int up = 2;
-constexpr int down = 3;
+constexpr int x_axis = 0;
+constexpr int y_axis = 1;
+
+class Device 
+{
+public:
+    virtual void OnChange(int index, const State& state) = 0;
+};
+
+class AnalogDevice : public Device
+{
+public:
+    void OnChange(int index, const State& state) override
+    {
+        int button = (index * 2) + (Utils::sign(state.value) == 1);
+        if (!state.reset && !sent_buttons_[button])
+        {
+            Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+        }
+        else if (state.reset && sent_buttons_[button])
+        {
+            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+        }
+    }
+
+private:
+    bool sent_buttons_[BUTTONS]{};
+};
+
+Controller::Controller()
+    : device(new AnalogDevice())
+{
+}
 
 void Controller::Update()
 {
-    const auto limit = 1020;
-    if (axes_.x == 0)
+    UpdateAxisState(x_axis, axes_.x);
+    UpdateAxisState(y_axis, axes_.y);
+
+    if (axes_.x != 0)
     {
-        if (sent_axis_buttons_[right])
-        {
-            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[right], 1);
-            sent_axis_buttons_[right] = false;
-        }
+        int last_x_sign = Utils::sign(axes_.x);
+        axes_.x = last_x_sign * (std::abs(axes_.x) - 10);
 
-        if (sent_axis_buttons_[left])
+        if (Utils::sign(axes_.x) != last_x_sign)
         {
-            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[left], 1);
-            sent_axis_buttons_[left] = false;
-        }
-    }
-    else if (std::abs(axes_.x) >= limit)
-    {
-        fprintf(stdout, "x: %d\n", std::abs(axes_.x));
-        int sign = Utils::sign(axes_.x);
-        int current_button = sign == 1;
-        int opposite_button = sign != 1;
-
-        if (sent_axis_buttons_[opposite_button])
-        {
-            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[opposite_button], 1);
-            sent_axis_buttons_[opposite_button] = false;
-        }
-
-        if (!sent_axis_buttons_[current_button])
-        {
-            Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[current_button], 1);
-            sent_axis_buttons_[current_button] = true;
+            axes_.x = 0;
         }
     }
 
-    if (axes_.y == 0)
+    if (axes_.y != 0)
     {
-        if (sent_axis_buttons_[up])
-        {
-            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[up], 1);
-            sent_axis_buttons_[up] = false;
-        }
+        int last_y_sign = Utils::sign(axes_.y);
+        axes_.y = last_y_sign * (std::abs(axes_.y) - 10);
 
-        if (sent_axis_buttons_[down])
+        if (Utils::sign(axes_.y) != last_y_sign)
         {
-            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[down], 1);
-            sent_axis_buttons_[down] = false;
+            axes_.y = 0;
         }
     }
-    else if (std::abs(axes_.y) >= limit)
-    {
-        fprintf(stdout, "y: %d\n", std::abs(axes_.y));
-        int sign = Utils::sign(axes_.y);
-        int current_button = 2 + (sign == 1);
-        int opposite_button = 2 + (sign != 1);
-
-        if (sent_axis_buttons_[opposite_button])
-        {
-            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[opposite_button], 1);
-            sent_axis_buttons_[opposite_button] = false;
-        }
-
-        if (!sent_axis_buttons_[current_button])
-        {
-            Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[current_button], 1);
-            sent_axis_buttons_[current_button] = true;
-        }
-    }
-    axes_.x = 0;
-    axes_.y = 0;
 }
 
 void Controller::SetAxis(float raw_x, float raw_y)
@@ -103,6 +86,58 @@ void Controller::SetAxis(float raw_x, float raw_y)
 		last_raw_y_ = raw_y;
 		OnChange();
 	}
+}
+
+void Controller::UpdateAxisState(int axis_index, int axis)
+{
+    const int limit = threshold * HID_JOYSTICK_MAX;
+    const int update_time = static_cast<int>(Config::Current()->CAMERA_UPDATE_TIME);
+
+    State& state = axis_index == x_axis ? x_state : y_state;
+
+    if (axis == 0)
+    {
+        if (state.value != 0)
+        {
+            state.reset = true;
+            device->OnChange(0, state);
+
+            state.value = 0;
+        }
+        return;
+    }
+
+    int dir = Utils::sign(axis);
+    int opposite_dir = -1 * Utils::sign(axis);
+
+    if (Utils::sign(state.value) == opposite_dir)
+    {
+        state.reset = true;
+        device->OnChange(axis_index, state);
+    }
+
+    if (std::abs(axis) > limit)
+    {
+        state.value = dir * (std::abs(state.value) + 1);
+        state.reset = false;
+        if (std::abs(state.value) > update_time)
+        {
+            device->OnChange(axis_index, state);
+        }
+    }
+    else if (std::abs(state.value) > 0)
+    {
+        int last_state_sign = Utils::sign(state.value);
+        state.value = last_state_sign * (std::abs(state.value) - 1);
+        if (Utils::sign(state.value) != last_state_sign)
+        {
+            state.reset = true;
+            state.value = last_state_sign;
+            device->OnChange(0, state);
+
+            state.value = 0;
+        }
+    }
 }
 
 void Controller::OnChange()
