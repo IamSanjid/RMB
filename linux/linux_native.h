@@ -41,14 +41,14 @@ private:
 		uint32_t key, modifier;
 	};
 
-    static LinuxNative* instance_;
+	static LinuxNative* instance_;
 
 	typedef void(*EnumWindowProc)(Window window, void* userDefinedPtr);
 
 	/* most of these codes are copy pasted from https://github.com/jordansissel/xdotool */
 
 	bool GetDefaultScreenMousePos(int* x_ret, int* y_ret, int* screen_ret = NULL, Window* window_ret = NULL);
-	unsigned char* GetWindowPropertyByAtom(Window window, Atom atom, long *nitems = NULL, Atom *type = NULL, int *size = NULL);
+	unsigned char* GetWindowPropertyByAtom(Window window, Atom atom, long* nitems = NULL, Atom* type = NULL, int* size = NULL);
 	uint32_t KeyCodeToModifier(KeyCode keycode);
 	uint32_t HashRegKey(int key, uint32_t modmask);
 	void EnumAllWindow(EnumWindowProc enumWindowProc, void* userDefinedPtr);

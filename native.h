@@ -7,7 +7,7 @@
 
 struct HotkeyEvent : Event
 {
-	HotkeyEvent(uint32_t key_, uint32_t modifier_) 
+	HotkeyEvent(uint32_t key_, uint32_t modifier_)
 		: key(key_), modifier(modifier_) {};
 	uint32_t key;
 	uint32_t modifier;

@@ -3,7 +3,6 @@
 
 constexpr int BUTTONS = 4;
 
-
 struct Axes
 {
 	int x;
@@ -15,10 +14,15 @@ struct Axes
 	bool down;
 };
 
-struct State
+struct DeviceStatus
 {
 	bool reset;
-	int value;
+	double value;
+};
+
+struct State
+{
+
 };
 
 class Device;
@@ -29,12 +33,12 @@ public:
 	Controller();
 
 	void Update();
+	void StopDevice();
 	void SetAxis(float raw_x, float raw_y);
 
 private:
 	Device* device;
 
-	void UpdateAxisState(int axis_index, int axis);
 	void OnChange();
 	void SanatizeAxes(float raw_x, float raw_y, bool clamp_value);
 
@@ -45,9 +49,6 @@ private:
 	float last_y_;
 
 	Axes axes_{};
-
-	State x_state{};
-	State y_state{};
 
 	mutable std::mutex mutex;
 };

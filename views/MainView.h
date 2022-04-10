@@ -15,18 +15,20 @@ public:
 	void SetSize(uint32_t width, uint32_t height) override { (void)width; (void)height; }
 	void SetPos(uint32_t x, uint32_t y) override { (void)x; (void)y; }
 
+#if _DEBUG
 	int test_delay = 10;
 	int test_type = 0;
+#endif
 
 private:
 	void GetRightStickButtons();
-	
+
 	int r_btn_key_codes_[4]{};
 	std::string r_btn_text_[4];
 	bool r_btn_changing_[4]{ false };
 
 	int modifier_selected = 0, key_selected = 8;
-	bool show_change_r_stick = false;
+	bool show_conf_input = false;
 
 	const char* modifiers[3] = { "Control", "Shift", "Alt" };
 	const uint32_t* glfw_modifiers;

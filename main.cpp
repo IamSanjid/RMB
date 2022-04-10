@@ -2,6 +2,6 @@
 
 int main(int, char**)
 {
-    Application::Create()->Run();
-    return 0;
+	Application::Create()->Run();
+	return 0;
 }
