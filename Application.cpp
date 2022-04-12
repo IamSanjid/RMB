@@ -81,6 +81,7 @@ Application::~Application()
 	delete main_view_;
 	main_window_ = nullptr;
 	instance_ = nullptr;
+	controller_ = nullptr;
 	mouse_ = nullptr;
 	main_view_ = nullptr;
 }
