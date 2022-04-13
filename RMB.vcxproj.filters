@@ -94,6 +94,9 @@
       <Filter>views</Filter>
     </ClInclude>
     <ClInclude Include="controller.h" />
+    <ClInclude Include="Utils\iniparser.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">

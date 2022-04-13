@@ -7,11 +7,25 @@
 
 struct HotkeyEvent : Event
 {
-	HotkeyEvent(uint32_t key_, uint32_t modifier_)
-		: key(key_), modifier(modifier_) {};
-	uint32_t key;
-	uint32_t modifier;
+	HotkeyEvent(uint32_t key, uint32_t modifier)
+		: key_(key), modifier_(modifier) {};
+	uint32_t key_;
+	uint32_t modifier_;
 };
+
+struct MouseButtonEvent : Event
+{
+	MouseButtonEvent(uint32_t key, bool is_pressed, int _x, int _y)
+		: key_(key), is_pressed_(is_pressed), x(_x), y(_y) {};
+	uint32_t key_;
+	bool is_pressed_;
+	int x;
+	int y;
+};
+
+const uint32_t MOUSE_LBUTTON = 0x1;
+const uint32_t MOUSE_RBUTTON = 0x2;
+const uint32_t MOUSE_MBUTTON = 0x3;
 
 class Native
 {

@@ -7,6 +7,7 @@ class Mouse
 {
 public:
 	void MouseMoved(int x, int y, int center_x, int center_y);
+	/* TODO: separate Controller from Mouse class */
 	void Update(Controller* controller);
 	void StopPanning();
 

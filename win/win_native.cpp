@@ -4,7 +4,7 @@
 #include <chrono>
 #include <thread>
 
-Native* Native::GetInstance() 
+Native* Native::GetInstance()
 {
 	return WinNative::GetInstance();
 }
@@ -19,8 +19,9 @@ WinNative* WinNative::GetInstance()
 WinNative* WinNative::instance_ = nullptr;
 
 WinNative::WinNative()
-/*: kbd_hook_(SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, NULL)),
+	: /*kbd_hook_(SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, NULL)),
 	last_key_({})*/
+	mouse_hook_(SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, NULL, NULL))
 {
 	HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
 	default_arrow_ = CopyCursor(arrowHandle);
@@ -50,6 +51,10 @@ WinNative::~WinNative()
 {
 	/*if (kbd_hook_)
 		UnhookWindowsHookEx(kbd_hook_);*/
+	if (mouse_hook_)
+	{
+		UnhookWindowsHookEx(mouse_hook_);
+	}
 	if (reg_window_)
 	{
 		DestroyWindow(reg_window_);
@@ -94,6 +99,7 @@ void WinNative::UnregisterHotKey(uint32_t key, uint32_t modifier)
 	auto found = registered_keys_.find(key_combo);
 	if (found != registered_keys_.cend())
 	{
+		printf("Unregistered: %s\n", key_combo.c_str());
 		registered_ids_.erase(found->second.id);
 		registered_keys_.erase(key_combo);
 	}
@@ -179,7 +185,7 @@ bool WinNative::SetFocusOnProcess(const std::string& process_name)
 		}
 		return TRUE;
 	};
-	process_finder finder = { process_name.c_str(), NULL};
+	process_finder finder = { process_name.c_str(), NULL };
 	EnumWindows(EnumWindowsProc, (LPARAM)&finder);
 	if (finder.found_process)
 	{
@@ -214,8 +220,8 @@ void WinNative::CursorHide(bool hide)
 		}
 
 		// Set the cursor to a transparent one to emulate no cursor
-		BYTE ANDmaskCursor[1 * 4]{0};
-		BYTE XORmaskCursor[1 * 4]{0};
+		BYTE ANDmaskCursor[1 * 4]{ 0 };
+		BYTE XORmaskCursor[1 * 4]{ 0 };
 
 		auto noCursor = CreateCursor(nullptr, 1, 1, 1, 1, ANDmaskCursor, XORmaskCursor);
 		SetSystemCursor(noCursor, OCR_NORMAL);
@@ -421,4 +427,38 @@ LRESULT WinNative::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
+}
+
+LRESULT WinNative::LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	if (nCode == HC_ACTION)
+	{
+		auto mouse_hook = ((MOUSEHOOKSTRUCT*)lParam);
+		int x = mouse_hook->pt.x;
+		int y = mouse_hook->pt.y;
+		switch (wParam)
+		{
+		case WM_LBUTTONDOWN:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_LBUTTON, true, x, y));
+			break;
+		case WM_LBUTTONUP:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_LBUTTON, false, x, y));
+			break;
+		case WM_RBUTTONDOWN:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_RBUTTON, true, x, y));
+			break;
+		case WM_RBUTTONUP:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_RBUTTON, false, x, y));
+			break;
+		case WM_MBUTTONDOWN:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_MBUTTON, true, x, y));
+			break;
+		case WM_MBUTTONUP:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_MBUTTON, false, x, y));
+			break;
+		default:
+			break;
+		}
+	}
+	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }

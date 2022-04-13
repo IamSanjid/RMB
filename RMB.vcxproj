@@ -203,6 +203,7 @@
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="native.h" />
     <ClInclude Include="Utils\EventSystem.h" />
+    <ClInclude Include="Utils\iniparser.hpp" />
     <ClInclude Include="Utils\Utils.h" />
     <ClInclude Include="Utils\vec.h" />
     <ClInclude Include="views\MainView.h" />

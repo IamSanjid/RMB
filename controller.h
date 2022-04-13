@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <vector>
 
 constexpr int BUTTONS = 4;
 
@@ -17,16 +18,13 @@ struct Axes
 struct DeviceStatus
 {
 	bool reset;
-	double value;
-};
-
-struct State
-{
-
+	int value;
 };
 
 class Device;
 class AnalogDevice;
+class AnalogStickDevice;
+
 class Controller
 {
 public:
@@ -35,9 +33,10 @@ public:
 	void Update();
 	void StopDevice();
 	void SetAxis(float raw_x, float raw_y);
+	void SetButton(int button, int value);
 
 private:
-	Device* device;
+	std::vector<Device*> devices;
 
 	void OnChange();
 	void SanatizeAxes(float raw_x, float raw_y, bool clamp_value);

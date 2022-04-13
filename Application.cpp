@@ -64,6 +64,7 @@ Application::Application()
 	instance_ = this;
 	GetTotalRunningTime();
 	EventBus::Instance().subscribe(this, &Application::OnHotkey);
+	EventBus::Instance().subscribe(this, &Application::OnMouseButton);
 }
 
 Application::~Application()
@@ -158,56 +159,59 @@ void Application::Run()
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	std::thread([this]
+	{
+		while (is_running_)
 		{
-			while (is_running_)
-			{
-				mouse_->Update(controller_);
-			}
-		}).detach();
+			mouse_->Update(controller_);
+		}
+	}).detach();
 
-		std::thread([this]
-			{
-				while (is_running_)
-				{
-					controller_->Update();
-				}
-			}).detach();
+	std::thread([this]
+	{
+		while (is_running_)
+		{
+			controller_->Update();
+		}
+	}).detach();
 
-			while (!glfwWindowShouldClose(main_window_))
-			{
-				Native::GetInstance()->Update();
-				EventBus::Instance().update();
+	while (!glfwWindowShouldClose(main_window_))
+	{
+		Native::GetInstance()->Update();
+		EventBus::Instance().update();
 
-				glfwPollEvents();
+		glfwPollEvents();
 
-				if (panning_started_)
-				{
-					continue;
-				}
+		if (panning_started_)
+		{
+			continue;
+		}
 
-				ImGui_ImplOpenGL3_NewFrame();
-				ImGui_ImplGlfw_NewFrame();
-				ImGui::NewFrame();
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
 
-				main_view_->Show();
+		main_view_->Show();
 
-				ImGui::Render();
-				int display_w, display_h;
-				glfwGetFramebufferSize(main_window_, &display_w, &display_h);
-				glViewport(0, 0, display_w, display_h);
-				glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-				glClear(GL_COLOR_BUFFER_BIT);
-				ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		ImGui::Render();
+		int display_w, display_h;
+		glfwGetFramebufferSize(main_window_, &display_w, &display_h);
+		glViewport(0, 0, display_w, display_h);
+		glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-				glfwSwapBuffers(main_window_);
-			}
+		glfwSwapBuffers(main_window_);
+	}
 }
 
-void Application::Reconfig()
+void Application::Reconfig(Config* new_conf)
 {
 	/* getting scan codes for current platform */
 	Native::GetInstance()->UnregisterHotKey(Config::Current()->TOGGLE_KEY, Config::Current()->TOGGLE_MODIFIER);
-	Config::Current(Config::Default());
+	if (new_conf)
+		Config::Current(new_conf);
+	else
+		Config::Current(Config::Default());
 
 	Config::Current()->TOGGLE_KEY = glfwGetKeyScancode(Config::Current()->TOGGLE_KEY);
 	Config::Current()->TOGGLE_MODIFIER = glfwGetKeyScancode(Config::Current()->TOGGLE_MODIFIER);
@@ -217,6 +221,13 @@ void Application::Reconfig()
 	{
 		Config::Current()->RIGHT_STICK_KEYS[i] = glfwGetKeyScancode(Config::Current()->RIGHT_STICK_KEYS[i]);
 	}
+
+	if (Config::Current()->LEFT_MOUSE_KEY)
+		Config::Current()->LEFT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->LEFT_MOUSE_KEY);
+	if (Config::Current()->RIGHT_MOUSE_KEY)
+		Config::Current()->RIGHT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->RIGHT_MOUSE_KEY);
+	if (Config::Current()->MIDDLE_MOUSE_KEY)
+		Config::Current()->MIDDLE_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->MIDDLE_MOUSE_KEY);
 }
 
 void Application::TogglePanning()
@@ -271,8 +282,6 @@ void Application::StartPanning()
 			mouse_change_started = true;
 		}
 
-		//mouse_->Update(controller_);
-
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 }
@@ -280,14 +289,41 @@ void Application::StartPanning()
 void Application::OnHotkey(HotkeyEvent* evt)
 {
 #if _DEBUG
-	fprintf(stdout, "hot_key: (%d, %d)\n", evt->key, evt->modifier);
-	if ((int)evt->key == glfwGetKeyScancode(GLFW_KEY_T) && (int)evt->modifier == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL))
+	fprintf(stdout, "hot_key: (%d, %d)\n", evt->key_, evt->modifier_);
+	if ((int)evt->key_ == glfwGetKeyScancode(GLFW_KEY_T) && (int)evt->modifier_ == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL))
 	{
 		mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
 	}
 #endif
-	if (evt->key == Config::Current()->TOGGLE_KEY && evt->modifier == Config::Current()->TOGGLE_MODIFIER)
+	if (evt->key_ == Config::Current()->TOGGLE_KEY && evt->modifier_ == Config::Current()->TOGGLE_MODIFIER)
 		TogglePanning();
+}
+
+void Application::OnMouseButton(MouseButtonEvent* evt)
+{
+	if (!Config::Current()->BIND_MOUSE_BUTTON)
+		return;
+	switch (evt->key_)
+	{
+	case MOUSE_LBUTTON:
+		if (Config::Current()->LEFT_MOUSE_KEY)
+		{
+			controller_->SetButton(Config::Current()->LEFT_MOUSE_KEY, evt->is_pressed_);
+		}
+		break;
+	case MOUSE_RBUTTON:
+		if (Config::Current()->RIGHT_MOUSE_KEY)
+		{
+			controller_->SetButton(Config::Current()->RIGHT_MOUSE_KEY, evt->is_pressed_);
+		}
+		break;
+	case MOUSE_MBUTTON:
+		if (Config::Current()->MIDDLE_MOUSE_KEY)
+		{
+			controller_->SetButton(Config::Current()->MIDDLE_MOUSE_KEY, evt->is_pressed_);
+		}
+		break;
+	}
 }
 
 void Application::OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)

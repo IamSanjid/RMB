@@ -44,12 +44,12 @@ void Mouse::MouseMoved(int x, int y, int center_x, int center_y)
 
 	if (x_dir_changed)
 	{
-		last_mouse_change_.x = last_mouse_change_.x / last_mouse_change_.mag();
+		last_mouse_change_.x = last_mouse_change_.x * 0.5f;
 	}
 
 	if (y_dir_changed)
 	{
-		last_mouse_change_.y = last_mouse_change_.y / last_mouse_change_.mag();
+		last_mouse_change_.y = last_mouse_change_.y * 0.5f;
 	}
 
 	const auto last_move_distance = last_mouse_change_.mag();

@@ -53,6 +53,7 @@ private:
 	HHOOK kbd_hook_;
 	*/
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 
 	static WinNative* instance_;
 
@@ -67,4 +68,6 @@ private:
 
 	HWND reg_window_;
 	HCURSOR default_arrow_;
+
+	HHOOK mouse_hook_;
 };

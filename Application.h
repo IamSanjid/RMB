@@ -5,9 +5,11 @@
 
 struct GLFWwindow;
 struct HotkeyEvent;
+struct MouseButtonEvent;
 class MainView;
 class Mouse;
 class Controller;
+class Config;
 
 class Application
 {
@@ -27,13 +29,15 @@ public:
 	bool Initialize(const char* name, uint32_t width, uint32_t height);
 
 	void Run();
-	void Reconfig();
+	void Reconfig(Config* new_conf = nullptr);
 	void TogglePanning();
 
 	bool IsPanning() { return panning_started_; };
 private:
 	void StartPanning();
 	void OnHotkey(HotkeyEvent* evt);
+	void OnMouseButton(MouseButtonEvent* evt);
+
 	static void OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 	static Application* instance_;
