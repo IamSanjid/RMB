@@ -8,7 +8,7 @@ struct HotkeyEvent;
 struct MouseButtonEvent;
 class MainView;
 class Mouse;
-class Controller;
+class NpadController;
 class Config;
 
 class Application
@@ -25,6 +25,7 @@ public:
 
 	static Application* GetInstance();
 	static double GetTotalRunningTime();
+	static NpadController* GetController();
 
 	bool Initialize(const char* name, uint32_t width, uint32_t height);
 
@@ -32,9 +33,10 @@ public:
 	void Reconfig(Config* new_conf = nullptr);
 	void TogglePanning();
 
-	bool IsPanning() { return panning_started_; };
+	bool IsPanning() const { return panning_started_; }
+
 private:
-	void StartPanning();
+	void DetectMouseMove(int center_x, int center_y);
 	void OnHotkey(HotkeyEvent* evt);
 	void OnMouseButton(MouseButtonEvent* evt);
 
@@ -45,7 +47,7 @@ private:
 	GLFWwindow* main_window_ = nullptr;
 	MainView* main_view_ = nullptr;
 	Mouse* mouse_;
-	Controller* controller_;
+	NpadController* controller_;
 
 	bool is_running_ = false;
 	bool panning_started_ = false;

@@ -3,12 +3,18 @@
 #include <cmath>
 
 #include "Config.h"
-#include "controller.h"
+#include "Application.h"
+#include "npad_controller.h"
 #include "Utils.h"
 
 #if _DEBUG
 #include "native.h"
 #endif
+
+Mouse::Mouse()
+{
+	update_thread = std::jthread([this](std::stop_token stop_token) { UpdateThread(stop_token); });
+}
 
 void Mouse::MouseMoved(int x, int y, int center_x, int center_y)
 {
@@ -44,12 +50,12 @@ void Mouse::MouseMoved(int x, int y, int center_x, int center_y)
 
 	if (x_dir_changed)
 	{
-		last_mouse_change_.x = last_mouse_change_.x * 0.5f;
+		last_mouse_change_.x = mouse_change.x / mouse_change.mag();
 	}
 
 	if (y_dir_changed)
 	{
-		last_mouse_change_.y = last_mouse_change_.y * 0.5f;
+		last_mouse_change_.y = mouse_change.y / mouse_change.mag();
 	}
 
 	const auto last_move_distance = last_mouse_change_.mag();
@@ -100,21 +106,27 @@ void Mouse::TurnTest(int delay, int test_type)
 }
 #endif
 
-void Mouse::Update(Controller* controller)
+void Mouse::UpdateThread(std::stop_token stop_token)
 {
 	constexpr auto update_time = 10;
-	const float sensitivity = Config::Current()->SENSITIVITY * 0.025f;
-
-	last_mouse_change_ *= 0.8f;
-
-	controller->SetAxis(last_mouse_change_.x * sensitivity, last_mouse_change_.y * sensitivity);
-
-	if (mouse_panning_timeout_++ > 20)
+	while (!stop_token.stop_requested())
 	{
-		StopPanning();
-	}
+		if (Application::GetInstance()->IsPanning())
+		{
+			last_mouse_change_ *= 0.8f;
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(update_time));
+			const float sensitivity = Config::Current()->SENSITIVITY * 0.025f;
+			Application::GetController()->SetStick(last_mouse_change_.x * sensitivity, last_mouse_change_.y * sensitivity);
+		}
+
+		if (mouse_panning_timeout_++ > 20)
+		{
+			StopPanning();
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(update_time));
+	}
+	fprintf(stdout, "Exiting Mouse.\n");
 }
 
 void Mouse::StopPanning()

@@ -27,7 +27,7 @@
 #include "Config.h"
 #include "views/MainView.h"
 #include "mouse.h"
-#include "controller.h"
+#include "npad_controller.h"
 
 #include <thread>
 #include <stdio.h>
@@ -55,6 +55,11 @@ double Application::GetTotalRunningTime()
 	auto current_time = Time::now().time_since_epoch();
 
 	return std::chrono::duration_cast<fmsec>(current_time - starting_time).count();
+}
+
+NpadController* Application::GetController()
+{
+	return instance_->controller_;
 }
 
 Application* Application::instance_ = nullptr;
@@ -127,7 +132,7 @@ bool Application::Initialize(const char* name, uint32_t width, uint32_t height)
 	if (main_window_ == NULL)
 		return false;
 
-	controller_ = new Controller();
+	controller_ = new NpadController();
 	mouse_ = new Mouse();
 
 	glfwMakeContextCurrent(main_window_);
@@ -158,30 +163,24 @@ void Application::Run()
 
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-	std::thread([this]
-	{
-		while (is_running_)
-		{
-			mouse_->Update(controller_);
-		}
-	}).detach();
+	int monitorX, monitorY;
 
-	std::thread([this]
-	{
-		while (is_running_)
-		{
-			controller_->Update();
-		}
-	}).detach();
+	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+
+	glfwGetMonitorPos(monitor, &monitorX, &monitorY);
+
+	int center_x = videoMode->width / 2, center_y = videoMode->height / 2;
 
 	while (!glfwWindowShouldClose(main_window_))
 	{
 		Native::GetInstance()->Update();
 		EventBus::Instance().update();
+		DetectMouseMove(center_x, center_y);
 
 		glfwPollEvents();
 
-		if (panning_started_)
+		if (glfwGetWindowAttrib(main_window_, GLFW_ICONIFIED))
 		{
 			continue;
 		}
@@ -237,7 +236,6 @@ void Application::TogglePanning()
 		if (Config::Current()->AUTO_FOCUS_RYU && !Native::GetInstance()->SetFocusOnProcess("Ryujinx"))
 			return;
 		panning_started_ = true;
-		std::thread(&Application::StartPanning, this).detach();
 #if !defined(_DEBUG)
 		if (Config::Current()->HIDE_MOUSE)
 			Native::GetInstance()->CursorHide(true);
@@ -247,42 +245,38 @@ void Application::TogglePanning()
 	else
 	{
 		panning_started_ = false;
-		mouse_->StopPanning();
-		controller_->StopDevice();
+		controller_->ClearState();
 		Native::GetInstance()->CursorHide(false);
 	}
 }
 
-void Application::StartPanning()
+void Application::DetectMouseMove(int center_x, int center_y)
 {
-	int monitorX, monitorY;
+	static int last_cursor_x = 0, last_cursor_y = 0;
+	static bool mouse_change_started = false;
 
-	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-
-	glfwGetMonitorPos(monitor, &monitorX, &monitorY);
-
-	int center_x = videoMode->width / 2, center_y = videoMode->height / 2;
-
-	/* thread looks for mouse position change..  */
-	int last_cursor_x = 0, last_cursor_y = 0;
-	bool mouse_change_started = false;
-
-	while (panning_started_)
+	if (!panning_started_)
 	{
-		int x = 0, y = 0;
-		Native::GetInstance()->GetMousePos(&x, &y);
+		mouse_change_started = false;
+		return;
+	}
 
-		if (x != last_cursor_x || y != last_cursor_y)
-		{
-			last_cursor_x = x; last_cursor_y = y;
-			Native::GetInstance()->SetMousePos(center_x, center_y);
-			if (mouse_change_started)
-				mouse_->MouseMoved(x, y, center_x, center_y);
-			mouse_change_started = true;
-		}
+	int x = 0, y = 0;
+	Native::GetInstance()->GetMousePos(&x, &y);
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	if (!mouse_change_started)
+	{
+		last_cursor_x = x; last_cursor_y = y;
+		mouse_change_started = true;
+		Native::GetInstance()->SetMousePos(center_x, center_y);
+		return;
+	}
+
+	if (x != last_cursor_x || y != last_cursor_y)
+	{
+		last_cursor_x = x; last_cursor_y = y;
+		Native::GetInstance()->SetMousePos(center_x, center_y);
+		mouse_->MouseMoved(x, y, center_x, center_y);
 	}
 }
 

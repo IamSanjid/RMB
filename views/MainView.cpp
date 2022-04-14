@@ -167,7 +167,7 @@ void MainView::Show()
 
 	ImGui::Text("Camera Update Time(%%):");
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Base camera update time, the lower the slower it will update the camera.\nKind of like sensitivity but not recommended to change.\nBut you may need to change it for some games.");
+		ImGui::SetTooltip("Base camera update time, the lower the slower it will update the camera.\nKind of like sensitivity but not recommended to change.\nBut you may need to change it for different games.");
 	if (ImGui::InputFloat(" ", &Config::Current()->CAMERA_UPDATE_TIME, 0.5f, 5.0f, "%0.3f"))
 	{
 		if (Config::Current()->CAMERA_UPDATE_TIME < 10.f)
@@ -433,7 +433,7 @@ void MainView::GetToggleKeys()
 {
 	auto current_modifier = Config::Current()->TOGGLE_MODIFIER;
 	auto current_key = Config::Current()->TOGGLE_KEY;
-	for (int i = 0; i < glfw_modifiers.size(); i++)
+	for (int i = 0; i < (int)glfw_modifiers.size(); i++)
 	{
 		if (glfw_modifiers[i] == current_modifier)
 		{
@@ -441,7 +441,7 @@ void MainView::GetToggleKeys()
 			break;
 		}
 	}
-	for (int i = 0; i < glfw_keys.size(); i++)
+	for (int i = 0; i < (int)glfw_keys.size(); i++)
 	{
 		if (glfw_keys[i] == current_key)
 		{
@@ -453,14 +453,15 @@ void MainView::GetToggleKeys()
 
 void MainView::GetRightStickButtons()
 {
-	for (auto key = GLFW_KEY_SPACE; key <= GLFW_KEY_LAST; key++)
+	for (auto& it : scancodes_to_glfw_)
 	{
-		int scanCode = glfwGetKeyScancode(key);
-		auto str = glfwGetKeyName(key, scanCode);
+		uint32_t scan_code = it.first;
+		int key = it.second;
 		for (auto i = 0; i < 4; i++)
 		{
-			if ((int)Config::Current()->RIGHT_STICK_KEYS[i] == scanCode)
+			if (Config::Current()->RIGHT_STICK_KEYS[i] == scan_code)
 			{
+				auto str = glfwGetKeyName(key, scan_code);
 				r_btn_key_codes_[i] = key;
 				selected_keys_[r_btn_key_codes_[i]] = true;
 				if (str)

@@ -4,9 +4,10 @@
 #include <chrono>
 #include <thread>
 
-Native* Native::GetInstance()
+std::shared_ptr<Native> Native::GetInstance()
 {
-	return WinNative::GetInstance();
+	static std::shared_ptr<Native> singleton_(WinNative::GetInstance());
+	return singleton_;
 }
 
 WinNative* WinNative::GetInstance()
@@ -100,6 +101,7 @@ void WinNative::UnregisterHotKey(uint32_t key, uint32_t modifier)
 	if (found != registered_keys_.cend())
 	{
 		printf("Unregistered: %s\n", key_combo.c_str());
+		::UnregisterHotKey(reg_window_, found->second.id);
 		registered_ids_.erase(found->second.id);
 		registered_keys_.erase(key_combo);
 	}
@@ -455,8 +457,6 @@ LRESULT WinNative::LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MBUTTONUP:
 			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_MBUTTON, false, x, y));
-			break;
-		default:
 			break;
 		}
 	}

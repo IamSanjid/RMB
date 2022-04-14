@@ -34,7 +34,7 @@ public:
 	Native(const Native&) = delete;
 	Native& operator=(const Native&) = delete;
 
-	static Native* GetInstance();
+	static std::shared_ptr<Native> GetInstance();
 
 	virtual ~Native() = default;
 	/* the keys are expected to be the scan code for the specific key on the specific platform */

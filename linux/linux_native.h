@@ -1,10 +1,15 @@
 #pragma once
 
 #include "../native.h"
+
 #include <X11/Xlib.h>
 #include <X11/X.h>
+#include <X11/extensions/record.h>
+
 #include <unordered_map>
 #include <vector>
+
+class XRecordHandler;
 
 class LinuxNative : public Native
 {
@@ -52,6 +57,7 @@ private:
 	uint32_t KeyCodeToModifier(KeyCode keycode);
 	uint32_t HashRegKey(int key, uint32_t modmask);
 	void EnumAllWindow(EnumWindowProc enumWindowProc, void* userDefinedPtr);
+	static void HookEvent(XPointer closeure, XRecordInterceptData* recorded_data);
 
 	bool ActivateWindow(Window window);
 	void SendKey(int key, bool is_down);
@@ -60,6 +66,6 @@ private:
 	std::unordered_map<uint32_t, ScanCodeInfo> scan_code_infos_;
 	std::unordered_map<uint32_t, RegKey> registered_keys_;
 
-	const char* display_name_ = NULL;
-	Display* display_;
+	Display* display_ = nullptr;
+	XRecordHandler* xrecord_handler_ = nullptr;
 };
