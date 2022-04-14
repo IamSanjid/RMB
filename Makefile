@@ -1,5 +1,5 @@
 CC := g++
-CFLAGS := -Wall
+CFLAGS := -Wall -std=c++20
 TARGET := RMB
 INCLUDES = -Iglfw/include -Iimgui -Ilinux -IUtils -Iviews
 LIBS = glfw/lib-linux-64/libglfw3.a -lGL $(shell pkg-config --libs x11 xi xfixes xtst) -lm -lpthread -ldl

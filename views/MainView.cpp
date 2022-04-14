@@ -189,6 +189,7 @@ void MainView::Show()
 
 	if (ImGui::Button("Default"))
 	{
+		selected_keys_.clear();
 		modifier_selected = 0; key_selected = 8;
 		Application::GetInstance()->Reconfig();
 		GetRightStickButtons();

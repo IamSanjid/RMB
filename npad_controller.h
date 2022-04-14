@@ -16,7 +16,7 @@ struct Axes
 	bool down;
 };
 
-struct Status
+struct InputStatus
 {
 	bool reset;
 	int value;

@@ -26,7 +26,7 @@ class InputDevice
 {
 public:
 	virtual void OnUpdate() = 0;
-	virtual void OnChange(int index, const Status& status) = 0;
+	virtual void OnChange(int index, const InputStatus& status) = 0;
 	virtual void OnStop() = 0;
 };
 
@@ -104,7 +104,7 @@ public:
 		last_update_ += end_wasted_time - start_wasted_time;
 	}
 
-	void OnChange(int index, const Status& status) override
+	void OnChange(int index, const InputStatus& status) override
 	{
 		std::lock_guard<std::mutex> lock{ mutex };
 
@@ -157,7 +157,7 @@ public:
 		}
 	}
 
-	void OnChange(int index, const Status& status) override
+	void OnChange(int index, const InputStatus& status) override
 	{
 		(void)index;
 		std::lock_guard<std::mutex> lock{ mutex };
@@ -235,8 +235,8 @@ void NpadController::OnChange()
 	axes_.x = static_cast<int32_t>(last_x_ * camera_update);
 	axes_.y = static_cast<int32_t>(last_y_ * camera_update);
 
-	Status x_status{ axes_.x == 0, (axes_.x == 0 ? last_x : axes_.x) };
-	Status y_status{ axes_.y == 0, (axes_.y == 0 ? last_y : axes_.y) };
+	InputStatus x_status{ axes_.x == 0, (axes_.x == 0 ? last_x : axes_.x) };
+	InputStatus y_status{ axes_.y == 0, (axes_.y == 0 ? last_y : axes_.y) };
 
 	input_devices_[StickInputDeviceIndex]->OnChange(x_axis, x_status);
 	input_devices_[StickInputDeviceIndex]->OnChange(y_axis, y_status);
