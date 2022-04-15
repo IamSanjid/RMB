@@ -146,7 +146,7 @@ void MainView::Show()
 
 	ImGui::Checkbox("Hide Mouse on inactivity", &Config::Current()->HIDE_MOUSE);
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Hides the normal mouse cursor.");
+		ImGui::SetTooltip("Hides the normal mouse cursor on inactivity.");
 	ImGui::Checkbox("Auto Focus Ryujinx", &Config::Current()->AUTO_FOCUS_RYU);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Tries to focus Ryujinx after enabling mouse panning.");
