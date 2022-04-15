@@ -67,6 +67,7 @@ WinNative::~WinNative()
 		DestroyCursor(default_arrow_);
 	}
 	registered_keys_.clear();
+	instance_ = nullptr;
 }
 
 void WinNative::RegisterHotKey(uint32_t key, uint32_t modifier)

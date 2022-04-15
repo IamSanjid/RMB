@@ -177,12 +177,9 @@ LinuxNative::~LinuxNative()
 	}
 	if (display_)
 	{
-		for (auto& it : registered_keys_)
-		{
-			UnregisterHotKey(it.second.key, it.second.modifier);
-		}
 		XCloseDisplay(display_);
 	}
+	registered_keys_.clear();
 	instance_ = nullptr;
 }
 
