@@ -154,7 +154,7 @@ void MainView::Show()
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Bind keyboard keys to mouse buttons.");
 
-	ImGui::Text("Sensitivity(%):");
+	ImGui::Text("Sensitivity(%%):");
 	if (ImGui::InputFloat(" ", &Config::Current()->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
 	{
 		if (Config::Current()->SENSITIVITY < 1.f)
