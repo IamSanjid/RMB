@@ -25,8 +25,8 @@ You can change the **_Sensitivity_** and for some games you might need to change
 Now you can bind your mouse buttons with any keyboard key. Example if you want to press the **ZR** key and bound that key with **O** in Ryujinx (the dafualt configuration).<br/>
 ![ryu_zr_zl](https://user-images.githubusercontent.com/38256064/163552661-93081905-d60b-4480-834f-4ea4b3173c20.png)<br/>
 Then you can bind right mouse button or left mouse button with **O** or **Q** or whatever key is mapped to the desired controller button in Ryujinx.<br/>
-![bind_mouse_with_key](https://user-images.githubusercontent.com/38256064/163553415-cb79c0e9-f341-4da8-a7ed-7160ba081d86.png)
-
+![mbinds](https://user-images.githubusercontent.com/38256064/163568717-ed7145a2-643b-4002-8e4e-d3e75f0d260a.png)<br/>
+**BTW, make sure 'Bind Mouse Buttons' is ticked.**
 
 # Disclaimer
 This is a simple learning project so, things might get broken. Since it simulates key presses according to the mouse position, you might feel the camera movement is a bit choppy and weird/wrong. And since this simulates keypresses, you should close(recommended) or hide/minimize other applications.<br/><br/>
@@ -75,3 +75,5 @@ You can download binaries for Windows and Linux from [releases](https://github.c
 https://user-images.githubusercontent.com/38256064/163562362-4d90e742-52d8-4d20-8f3d-3dc3005962a8.mp4
 
 https://user-images.githubusercontent.com/38256064/163563189-f3498c7e-e15e-4975-8b92-8629f10e2137.mp4
+
+https://user-images.githubusercontent.com/38256064/163569782-a08c5754-62d1-414b-a1a3-4b970b7eaa17.mp4
