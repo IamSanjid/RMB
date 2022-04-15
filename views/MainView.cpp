@@ -347,7 +347,7 @@ void MainView::Show()
 			}
 		}
 
-		hover_text = "The following button will be pressed if " + btn + " button is clicked.";
+		hover_text = "The following button will be pressed if " + btn + "\nbutton is clicked.";
 
 		if (ImGui::IsItemHovered())
 		{
