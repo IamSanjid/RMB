@@ -21,10 +21,6 @@ $(TARGET): $(OBJS)
 %.o: %.cpp
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 clean:
-	rm -rf $(TARGET) *.o
-	rm -rf imgui/*.o
-	rm -rf linux/*.o
-	rm -rf Utils/*.o
-	rm -rf views/*.o
+	rm -rf $(TARGET) $(OBJS) *.ini
 	
 .PHONY: all clean
