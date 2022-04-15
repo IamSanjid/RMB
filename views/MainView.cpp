@@ -152,7 +152,7 @@ void MainView::Show()
 		ImGui::SetTooltip("Tries to focus Ryujinx after enabling mouse panning.");
 	ImGui::Checkbox("Bind Mouse Buttons", &Config::Current()->BIND_MOUSE_BUTTON);
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Enable binding keyboard keys to mouse buttons.");
+		ImGui::SetTooltip("Enable binding mouse buttons to keyboard keys.");
 
 	ImGui::Text("Sensitivity(%%):");
 	if (ImGui::InputFloat(" ", &Config::Current()->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
