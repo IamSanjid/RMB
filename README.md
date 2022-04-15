@@ -1,5 +1,5 @@
 # RMB
-Mouse Panning and Mouse Button binder with keyboard for Ryujinx(https://ryujinx.org/).<br/>
+Mouse Panning and Mouse Button binder for Ryujinx(https://ryujinx.org/).<br/>
 It's a simple learning project. I wanted to use my mouse and change the camera view position but Ryujinx doesn't support this yet, you have to use third-party software to achieve it. In short, this lets you use your mouse to change the in-game camera view position for some games<br/>
 **_For some games?_**<br/>
 Well, if your desired game changes its camera view position according to your right-stick/left-stick/d-pad input and if you've bound these inputs with your keyboard then this can help you.<br/>
