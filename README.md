@@ -71,8 +71,7 @@ You can download binaries for Windows and Linux from [releases](https://github.c
 
 # Demo
 
-https://user-images.githubusercontent.com/38256064/158840429-af35e4d8-bb21-4f9f-9e72-05ce3122eaf1.mp4
 
+https://user-images.githubusercontent.com/38256064/163562362-4d90e742-52d8-4d20-8f3d-3dc3005962a8.mp4
 
-https://user-images.githubusercontent.com/38256064/158946691-4524f27a-d7b9-4cbc-9777-d4bc4719b939.mp4
-
+https://user-images.githubusercontent.com/38256064/163563189-f3498c7e-e15e-4975-8b92-8629f10e2137.mp4
