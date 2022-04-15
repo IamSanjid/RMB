@@ -70,7 +70,7 @@ Again this is a learning project, if anyone wants to help me improve this I woul
 You can download binaries for Windows and Linux from [releases](https://github.com/IamSanjid/RMB/releases/).
 
 # Demo
-![conf_pic](https://user-images.githubusercontent.com/38256064/163566995-5ffac28f-ed90-40cf-81a5-87f3378bee2f.png)
+![new_conf](https://user-images.githubusercontent.com/38256064/163598458-bc4b659f-a49e-463f-b50a-d02fb9744043.png)
 
 https://user-images.githubusercontent.com/38256064/163562362-4d90e742-52d8-4d20-8f3d-3dc3005962a8.mp4
 
