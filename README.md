@@ -24,15 +24,15 @@ You can change the **_Sensitivity_** and for some games you might need to change
 
 Now you can bind your mouse buttons with any keyboard key. Example if you want to press the **ZR** key and bound that key with **O** in Ryujinx (the dafualt configuration).<br/>
 ![ryu_zr_zl](https://user-images.githubusercontent.com/38256064/163552661-93081905-d60b-4480-834f-4ea4b3173c20.png)<br/>
-Then you can bind right mouse button or left mouse button with **O** or **Q** or whatever button going to press your desired controller button in Ryujinx.<br/>
+Then you can bind right mouse button or left mouse button with **O** or **Q** or whatever key is mapped to the desired controller button in Ryujinx.<br/>
 ![bind_mouse_with_key](https://user-images.githubusercontent.com/38256064/163553415-cb79c0e9-f341-4da8-a7ed-7160ba081d86.png)
 
 
 # Disclaimer
 This is a simple learning project so, things might get broken. Since it simulates key presses according to the mouse position, you might feel the camera movement is a bit choppy and weird/wrong. And since this simulates keypresses, you should close(recommended) or hide/minimize other applications.<br/><br/>
-* **_Make sure Ryujinx is running, focused, and is in the center of your screen before enabling mouse panning._**
+* **_Make sure Ryujinx is running, focused, and in the centre of your screen before enabling mouse panning.._**
 * **_Default Panning Toggle Hotkey is Ctrl+F9 if any other application uses the same hotkey it will fail so make sure to choose a unique hotkey or just close other applications._**
-* **_If you don't want to bind mouse buttons with your keyboard keys then just simply prees 'Dfault' button and set the mouse binding keys to None or just untick the 'Bind Mouse Buttons'
+* **_If you don't want to bind mouse buttons with your keyboard keys then just simply press the 'Default' button and set the mouse binding keys to None or just untick the 'Bind Mouse Buttons'_**
 
 # How does this work?
 1. It uses [GLFW](https://www.glfw.org/) and [ImGui](https://github.com/ocornut/imgui) for the UI part. It directly calls Native functions to handle keyboard and mouse events.
@@ -70,7 +70,7 @@ Again this is a learning project, if anyone wants to help me improve this I woul
 You can download binaries for Windows and Linux from [releases](https://github.com/IamSanjid/RMB/releases/).
 
 # Demo
-
+![conf_pic](https://user-images.githubusercontent.com/38256064/163566995-5ffac28f-ed90-40cf-81a5-87f3378bee2f.png)
 
 https://user-images.githubusercontent.com/38256064/163562362-4d90e742-52d8-4d20-8f3d-3dc3005962a8.mp4
 
