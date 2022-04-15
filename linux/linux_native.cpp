@@ -177,10 +177,10 @@ LinuxNative::~LinuxNative()
 	}
 	if (display_)
 	{
+		CursorHide(false);
 		XCloseDisplay(display_);
 	}
 	registered_keys_.clear();
-	CursorHide(false);
 	instance_ = nullptr;
 }
 
