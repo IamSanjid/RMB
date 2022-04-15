@@ -1,10 +1,15 @@
 #pragma once
 
 #include "../native.h"
+
 #include <X11/Xlib.h>
 #include <X11/X.h>
+#include <X11/extensions/record.h>
+
 #include <unordered_map>
 #include <vector>
+
+class XRecordHandler;
 
 class LinuxNative : public Native
 {
@@ -22,11 +27,11 @@ public:
 	void UnregisterHotKey(uint32_t key, uint32_t modifier) override;
 	void SendKeysDown(uint32_t* keys, size_t count) override;
 	void SendKeysUp(uint32_t* keys, size_t count) override;
-	void SetMousePos(double x, double y) override;
+	void SetMousePos(int x, int y) override;
 	bool SetFocusOnProcess(const std::string& process_name) override;
 	void CursorHide(bool hide) override;
 	void Update() override;
-	void GetMousePos(double* x_ret, double* y_ret) override;
+	void GetMousePos(int* x_ret, int* y_ret) override;
 
 private:
 	struct ScanCodeInfo
@@ -41,17 +46,18 @@ private:
 		uint32_t key, modifier;
 	};
 
-    static LinuxNative* instance_;
+	static LinuxNative* instance_;
 
 	typedef void(*EnumWindowProc)(Window window, void* userDefinedPtr);
 
 	/* most of these codes are copy pasted from https://github.com/jordansissel/xdotool */
 
 	bool GetDefaultScreenMousePos(int* x_ret, int* y_ret, int* screen_ret = NULL, Window* window_ret = NULL);
-	unsigned char* GetWindowPropertyByAtom(Window window, Atom atom, long *nitems = NULL, Atom *type = NULL, int *size = NULL);
+	unsigned char* GetWindowPropertyByAtom(Window window, Atom atom, long* nitems = NULL, Atom* type = NULL, int* size = NULL);
 	uint32_t KeyCodeToModifier(KeyCode keycode);
 	uint32_t HashRegKey(int key, uint32_t modmask);
 	void EnumAllWindow(EnumWindowProc enumWindowProc, void* userDefinedPtr);
+	static void HookEvent(XPointer closeure, XRecordInterceptData* recorded_data);
 
 	bool ActivateWindow(Window window);
 	void SendKey(int key, bool is_down);
@@ -60,6 +66,6 @@ private:
 	std::unordered_map<uint32_t, ScanCodeInfo> scan_code_infos_;
 	std::unordered_map<uint32_t, RegKey> registered_keys_;
 
-	const char* display_name_ = NULL;
-	Display* display_;
+	Display* display_ = nullptr;
+	XRecordHandler* xrecord_handler_ = nullptr;
 };

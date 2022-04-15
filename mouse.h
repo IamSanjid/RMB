@@ -1,19 +1,22 @@
 #pragma once
 #include "vec.h"
+#include <thread>
+
 class Mouse
 {
 public:
-	void MouseMoved(double x, double y, double center_x, double center_y);
+	Mouse();
+	void MouseMoved(int x, int y, int center_x, int center_y);
+
+#if _DEBUG
 	void TurnTest(int delay, int type);
-	void Update();
-	void StopPanning();
+#endif
 
 private:
-	void SetCamera(const double& sensitivity);
+	void UpdateThread(std::stop_token stop_token);
+	void StopPanning();
 
-	vd2d last_axis_change_{};
-	double axis_change_timeouts_[4]{};
-	double release_timeouts_[4]{};
-
-	int mouse_panning_timeout_;
+	vf2d last_mouse_change_{};
+	int mouse_panning_timeout_{};
+	std::jthread update_thread;
 };

@@ -35,6 +35,7 @@
     <ClCompile Include="views\MainView.cpp">
       <Filter>views</Filter>
     </ClCompile>
+    <ClCompile Include="npad_controller.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imgui_impl_glfw.h">
@@ -91,6 +92,10 @@
     </ClInclude>
     <ClInclude Include="views\MainView.h">
       <Filter>views</Filter>
+    </ClInclude>
+    <ClInclude Include="npad_controller.h" />
+    <ClInclude Include="Utils\iniparser.hpp">
+      <Filter>Utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

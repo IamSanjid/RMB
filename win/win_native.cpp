@@ -4,9 +4,10 @@
 #include <chrono>
 #include <thread>
 
-Native* Native::GetInstance() 
+std::shared_ptr<Native> Native::GetInstance()
 {
-	return WinNative::GetInstance();
+	static std::shared_ptr<Native> singleton_(WinNative::GetInstance());
+	return singleton_;
 }
 
 WinNative* WinNative::GetInstance()
@@ -19,15 +20,14 @@ WinNative* WinNative::GetInstance()
 WinNative* WinNative::instance_ = nullptr;
 
 WinNative::WinNative()
-/*: kbd_hook_(SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, NULL)),
+	: /*kbd_hook_(SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, NULL)),
 	last_key_({})*/
+	mouse_hook_(SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, NULL, NULL))
 {
 	HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
 	default_arrow_ = CopyCursor(arrowHandle);
 
-	instance_ = this;
-
-	WNDCLASSEXW wcex;
+	WNDCLASSEXW wcex{};
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
@@ -52,6 +52,10 @@ WinNative::~WinNative()
 {
 	/*if (kbd_hook_)
 		UnhookWindowsHookEx(kbd_hook_);*/
+	if (mouse_hook_)
+	{
+		UnhookWindowsHookEx(mouse_hook_);
+	}
 	if (reg_window_)
 	{
 		DestroyWindow(reg_window_);
@@ -96,6 +100,8 @@ void WinNative::UnregisterHotKey(uint32_t key, uint32_t modifier)
 	auto found = registered_keys_.find(key_combo);
 	if (found != registered_keys_.cend())
 	{
+		printf("Unregistered: %s\n", key_combo.c_str());
+		::UnregisterHotKey(reg_window_, found->second.id);
 		registered_ids_.erase(found->second.id);
 		registered_keys_.erase(key_combo);
 	}
@@ -133,23 +139,23 @@ void WinNative::SendKeysUp(uint32_t* keys, size_t count)
 	SendInput((UINT)count, &input[0], (UINT)sizeof(INPUT));
 }
 
-void WinNative::SetMousePos(double x, double y)
+void WinNative::SetMousePos(int x, int y)
 {
-	::SetCursorPos((int)x, (int)y);
+	::SetCursorPos(x, y);
 }
 
-void WinNative::GetMousePos(double* x_ret, double* y_ret)
+void WinNative::GetMousePos(int* x_ret, int* y_ret)
 {
 	POINT pos{};
 	if (GetCursorPos(&pos))
 	{
-		*x_ret = static_cast<double>(pos.x);
-		*y_ret = static_cast<double>(pos.y);
+		*x_ret = static_cast<int>(pos.x);
+		*y_ret = static_cast<int>(pos.y);
 	}
 	else
 	{
-		*x_ret = 0.0;
-		*y_ret = 0.0;
+		*x_ret = 0;
+		*y_ret = 0;
 	}
 }
 
@@ -181,7 +187,7 @@ bool WinNative::SetFocusOnProcess(const std::string& process_name)
 		}
 		return TRUE;
 	};
-	process_finder finder = { process_name.c_str(), NULL};
+	process_finder finder = { process_name.c_str(), NULL };
 	EnumWindows(EnumWindowsProc, (LPARAM)&finder);
 	if (finder.found_process)
 	{
@@ -216,8 +222,8 @@ void WinNative::CursorHide(bool hide)
 		}
 
 		// Set the cursor to a transparent one to emulate no cursor
-		BYTE ANDmaskCursor[1 * 4]{0};
-		BYTE XORmaskCursor[1 * 4]{0};
+		BYTE ANDmaskCursor[1 * 4]{ 0 };
+		BYTE XORmaskCursor[1 * 4]{ 0 };
 
 		auto noCursor = CreateCursor(nullptr, 1, 1, 1, 1, ANDmaskCursor, XORmaskCursor);
 		SetSystemCursor(noCursor, OCR_NORMAL);
@@ -423,4 +429,36 @@ LRESULT WinNative::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
+}
+
+LRESULT WinNative::LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	if (nCode == HC_ACTION)
+	{
+		auto mouse_hook = ((MOUSEHOOKSTRUCT*)lParam);
+		int x = mouse_hook->pt.x;
+		int y = mouse_hook->pt.y;
+		switch (wParam)
+		{
+		case WM_LBUTTONDOWN:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_LBUTTON, true, x, y));
+			break;
+		case WM_LBUTTONUP:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_LBUTTON, false, x, y));
+			break;
+		case WM_RBUTTONDOWN:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_RBUTTON, true, x, y));
+			break;
+		case WM_RBUTTONUP:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_RBUTTON, false, x, y));
+			break;
+		case WM_MBUTTONDOWN:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_MBUTTON, true, x, y));
+			break;
+		case WM_MBUTTONUP:
+			EventBus::Instance().publish(new MouseButtonEvent(MOUSE_MBUTTON, false, x, y));
+			break;
+		}
+	}
+	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }

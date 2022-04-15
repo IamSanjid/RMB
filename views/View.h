@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-struct ImGuiContext;
-
 class View
 {
 public:
