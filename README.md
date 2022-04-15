@@ -20,7 +20,7 @@ it will send **_I_** keypress to Ryujinx if you move your mouse **UP** ↑ or<br
 If you've changed these keys in Ryujinx make sure you also change those in RMB's configuration.<br/>
 ![conf_pic](https://user-images.githubusercontent.com/38256064/163551837-57ecccab-69f2-428b-94c6-ea32d1166d2f.png)<br/>
 
-You can change the **_Sensitivity_** and for some games you might need to change **_Camera Update Time_** for PLA it felt 65-60 was okay and for Super Mario Odessy 80 felt better you can play with it.<br/>
+You can change the **_Sensitivity_** and for some games you might need to change **_Camera Update Time_**. For PLA it felt 65-60 was okay and for Super Mario Odessy 80 felt better for me, you can play with it to find the perfect value.<br/>
 
 Now you can bind your mouse buttons with any keyboard key. Example if you want to press the **ZR** key and bound that key with **O** in Ryujinx (the dafualt configuration).<br/>
 ![ryu_zr_zl](https://user-images.githubusercontent.com/38256064/163552661-93081905-d60b-4480-834f-4ea4b3173c20.png)<br/>
