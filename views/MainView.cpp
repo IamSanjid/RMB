@@ -80,11 +80,11 @@ MainView::~MainView()
 
 void MainView::Show()
 {
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGuiIO& io = ImGui::GetIO();
 	io.IniFilename = NULL;
 
 	ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y), ImGuiCond_Always);
 
 	ImGui::Begin(name_, 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
 		| ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar);
@@ -97,7 +97,7 @@ void MainView::Show()
 	/* panning toggle hotkey changer.. */
 	ImGui::TextDisabled("Panning Toggle Hotkeys");
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Choose this carefully. Make sure no other application is using the same hotkey.");
+		ImGui::SetTooltip("Choose this carefully. Make sure no other application is\nusing the same hotkey.");
 	ImGui::Text("Modifier: ");
 	ImGui::SameLine();
 	if (ImGui::BeginCombo("##modifier_combo", modifiers[modifier_selected]))
@@ -120,7 +120,7 @@ void MainView::Show()
 		Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY, Config::Current()->TOGGLE_MODIFIER);
 	}
 
-	ImGui::Text("Key: ");
+	ImGui::Text("Key:      ");
 	ImGui::SameLine();
 	if (ImGui::BeginCombo("##key_combo", glfw_str_keys[key_selected]))
 	{
@@ -154,7 +154,8 @@ void MainView::Show()
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Bind keyboard keys to mouse buttons.");
 
-	if (ImGui::InputFloat("Sensitivity(%)", &Config::Current()->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
+	ImGui::Text("Sensitivity(%):");
+	if (ImGui::InputFloat(" ", &Config::Current()->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
 	{
 		if (Config::Current()->SENSITIVITY < 1.f)
 			Config::Current()->SENSITIVITY = 1.f;
@@ -163,11 +164,9 @@ void MainView::Show()
 	}
 
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Camera sensitivity. The higher the faster the camera view will be changed.");
+		ImGui::SetTooltip("Camera sensitivity. The higher the faster the camera\nview will be changed.");
 
 	ImGui::Text("Camera Update Time(%%):");
-	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Base camera update time, the lower the slower it will update the camera.\nKind of like sensitivity but not recommended to change.\nBut you may need to change it for different games.");
 	if (ImGui::InputFloat(" ", &Config::Current()->CAMERA_UPDATE_TIME, 0.5f, 5.0f, "%0.3f"))
 	{
 		if (Config::Current()->CAMERA_UPDATE_TIME < 10.f)
@@ -175,15 +174,20 @@ void MainView::Show()
 		else if (Config::Current()->CAMERA_UPDATE_TIME > 100.f)
 			Config::Current()->CAMERA_UPDATE_TIME = 100.f;
 	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Base camera update time, the lower the slower it will\nupdate the camera. Kind of like sensitivity but not\nrecommended to change.\nBut you may need to change it for different games.");
 
 	ImGui::NewLine();
 
-	if (ImGui::Button("Configure Input"))
-	{
-		show_conf_input = !show_conf_input;
-	}
+	/* configure input keys */
+	auto window_size = ImGui::GetWindowSize();
+	float width = window_size.x * 0.5f;
+	float height = window_size.y * 0.375f;
+	float delta_width = width * 0.5f;
+
+	ImGui::Button("Configure Input");
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Configure Keyboard Keys to match with your Ryujinx configuration and bind mouse\nbuttons with other keyboard keys.");
+		ImGui::SetTooltip("Configure Keyboard Keys to match with your Ryujinx\nconfiguration and bind mouse buttons with other\nkeyboard keys.");
 
 	ImGui::SameLine();
 
@@ -195,168 +199,163 @@ void MainView::Show()
 		GetRightStickButtons();
 		GetMouseButtons();
 	}
+
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Resets to default configuration.");
 
-	/* configure input keys */
-	if (show_conf_input)
+	ImGui::BeginChild("conf_input", ImVec2(width, height), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+	ImGui::Text("Stick Keys:");
+
+	if (ImGui::IsItemHovered())
 	{
-		ImGui::BeginChild("conf_input", ImVec2(ImGui::GetWindowSize().y, 185), true);
-
-		ImGui::Text("Stick Keys:");
-
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("Make sure you select the correct up/down/left/right keys which are\nbound with your keyboard.");
-		}
-
-		auto windowWidth = ImGui::GetWindowSize().x;
-		bool bounded = false;
-
-		for (int i = 2; i < 4; i++)
-		{
-			if (i == 2 && bounded)
-				continue;
-
-			auto textWidth = ImGui::CalcTextSize(r_btn_text_[i].c_str()).x;
-			if (i == 2 || i == 3)
-				ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-			else if (i == 1)
-				ImGui::SameLine((windowWidth - textWidth) * 0.95f);
-
-			bool other_btn_changing = any_mouse_btn_changing_;
-
-			for (int j = 0; j < 4; j++)
-			{
-				if (j == i)
-					continue;
-				if (r_btn_changing_[j])
-				{
-					other_btn_changing = true;
-					break;
-				}
-			}
-
-			if (ImGui::Button(r_btn_text_[i].c_str()) && !other_btn_changing)
-			{
-				r_btn_changing_[i] = !r_btn_changing_[i];
-				if (r_btn_changing_[i])
-				{
-					selected_keys_[r_btn_key_codes_[i]] = false;
-					r_btn_text_[i] = "waiting..";
-					any_r_btn_chaniging_ = true;
-				}
-				else
-				{
-					selected_keys_[r_btn_key_codes_[i]] = true;
-					auto str = glfwGetKeyName(r_btn_key_codes_[i], Config::Current()->RIGHT_STICK_KEYS[i]);
-					if (str)
-						r_btn_text_[i] = std::string(str);
-					else
-						r_btn_text_[i] = std::to_string(Config::Current()->RIGHT_STICK_KEYS[i]);
-					any_r_btn_chaniging_ = false;
-				}
-			}
-
-			if (ImGui::IsItemHovered())
-			{
-				if (i == 0)
-					ImGui::SetTooltip("Left button");
-				else if (i == 1)
-					ImGui::SetTooltip("Right button");
-				else if (i == 2)
-					ImGui::SetTooltip("Up button");
-				else if (i == 3)
-					ImGui::SetTooltip("Down button");
-			}
-
-			if (i == 2)
-			{
-				i = -1;
-				bounded = true;
-			}
-		}
-
-		ImGui::Text("Bind Mouse Buttons: ");
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("Bind keyboard keys with your mouse buttons.");
-		}
-
-		for (int i = 0; i < 3; i++)
-		{
-			int scancode = 0;
-			std::string btn = "";
-			std::string key_txt = "";
-			std::string hover_text = "";
-
-			bool other_btn_changing = any_r_btn_chaniging_;
-
-			for (int j = 0; j < 3; j++)
-			{
-				if (j == i)
-					continue;
-				if (mouse_btn_changing_[j])
-				{
-					other_btn_changing = true;
-					break;
-				}
-			}
-
-			switch (i)
-			{
-			case 0:
-				scancode = Config::Current()->LEFT_MOUSE_KEY;
-				btn = "Left Mouse";
-				break;
-			case 1:
-				scancode = Config::Current()->RIGHT_MOUSE_KEY;
-				btn = "Right Mouse";
-				break;
-			case 2:
-				scancode = Config::Current()->MIDDLE_MOUSE_KEY;
-				btn = "Middle Mouse";
-				break;
-			}
-
-			key_txt = btn + ": " + mouse_btn_text_[i];
-
-			if (ImGui::Button(key_txt.c_str()) && !other_btn_changing)
-			{
-				mouse_btn_changing_[i] = !mouse_btn_changing_[i];
-				if (mouse_btn_changing_[i])
-				{
-					selected_keys_[mouse_btn_key_codes_[i]] = false;
-					mouse_btn_text_[i] = "waiting..";
-					any_mouse_btn_changing_ = true;
-				}
-				else
-				{
-					selected_keys_[mouse_btn_key_codes_[i]] = true;
-					auto str = glfwGetKeyName(mouse_btn_key_codes_[i], scancode);
-					if (str)
-						mouse_btn_text_[i] = std::string(str);
-					else
-						mouse_btn_text_[i] = std::to_string(scancode);
-
-					if (scancode <= 0)
-						mouse_btn_text_[i] = "None";
-
-					any_mouse_btn_changing_ = false;
-				}
-			}
-
-			hover_text = "The following button will be pressed if " + btn + " button is clicked.";
-
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip(hover_text.c_str());
-			}
-		}
-
-		ImGui::EndChild();
+		ImGui::SetTooltip("Make sure you select the correct up/down/left/right keys\nwhich are bound with your keyboard.");
 	}
 
+	bool bounded = false;
+
+	for (int i = 2; i < 4; i++)
+	{
+		if (i == 2 && bounded)
+			continue;
+
+		auto text_width = ImGui::CalcTextSize(r_btn_text_[i].c_str()).x;
+		if (i == 2 || i == 3)
+			ImGui::SetCursorPosX((delta_width - text_width) * 0.5f);
+		else if (i == 1)
+			ImGui::SameLine((delta_width - text_width) * 0.9072f);
+
+		bool other_btn_changing = any_mouse_btn_changing_;
+
+		for (int j = 0; j < 4; j++)
+		{
+			if (j == i)
+				continue;
+			if (r_btn_changing_[j])
+			{
+				other_btn_changing = true;
+				break;
+			}
+		}
+
+		if (ImGui::Button(r_btn_text_[i].c_str()) && !other_btn_changing)
+		{
+			r_btn_changing_[i] = !r_btn_changing_[i];
+			if (r_btn_changing_[i])
+			{
+				selected_keys_[r_btn_key_codes_[i]] = false;
+				r_btn_text_[i] = "waiting..";
+				any_r_btn_chaniging_ = true;
+			}
+			else
+			{
+				selected_keys_[r_btn_key_codes_[i]] = true;
+				auto str = glfwGetKeyName(r_btn_key_codes_[i], Config::Current()->RIGHT_STICK_KEYS[i]);
+				if (str)
+					r_btn_text_[i] = std::string(str);
+				else
+					r_btn_text_[i] = std::to_string(Config::Current()->RIGHT_STICK_KEYS[i]);
+				any_r_btn_chaniging_ = false;
+			}
+		}
+
+		if (ImGui::IsItemHovered())
+		{
+			if (i == 0)
+				ImGui::SetTooltip("Left button");
+			else if (i == 1)
+				ImGui::SetTooltip("Right button");
+			else if (i == 2)
+				ImGui::SetTooltip("Up button");
+			else if (i == 3)
+				ImGui::SetTooltip("Down button");
+		}
+
+		if (i == 2)
+		{
+			i = -1;
+			bounded = true;
+		}
+	}
+
+	ImGui::Text("Bind Mouse Buttons: ");
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Bind keyboard keys with your mouse buttons.");
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		int scancode = 0;
+		std::string btn = "";
+		std::string key_txt = "";
+		std::string hover_text = "";
+
+		bool other_btn_changing = any_r_btn_chaniging_;
+
+		for (int j = 0; j < 3; j++)
+		{
+			if (j == i)
+				continue;
+			if (mouse_btn_changing_[j])
+			{
+				other_btn_changing = true;
+				break;
+			}
+		}
+
+		switch (i)
+		{
+		case 0:
+			scancode = Config::Current()->LEFT_MOUSE_KEY;
+			btn = "Left Mouse";
+			break;
+		case 1:
+			scancode = Config::Current()->RIGHT_MOUSE_KEY;
+			btn = "Right Mouse";
+			break;
+		case 2:
+			scancode = Config::Current()->MIDDLE_MOUSE_KEY;
+			btn = "Middle Mouse";
+			break;
+		}
+
+		key_txt = btn + ": " + mouse_btn_text_[i];
+
+		if (ImGui::Button(key_txt.c_str()) && !other_btn_changing)
+		{
+			mouse_btn_changing_[i] = !mouse_btn_changing_[i];
+			if (mouse_btn_changing_[i])
+			{
+				selected_keys_[mouse_btn_key_codes_[i]] = false;
+				mouse_btn_text_[i] = "waiting..";
+				any_mouse_btn_changing_ = true;
+			}
+			else
+			{
+				selected_keys_[mouse_btn_key_codes_[i]] = true;
+				auto str = glfwGetKeyName(mouse_btn_key_codes_[i], scancode);
+				if (str)
+					mouse_btn_text_[i] = std::string(str);
+				else
+					mouse_btn_text_[i] = std::to_string(scancode);
+
+				if (scancode <= 0)
+					mouse_btn_text_[i] = "None";
+
+				any_mouse_btn_changing_ = false;
+			}
+		}
+
+		hover_text = "The following button will be pressed if " + btn + " button is clicked.";
+
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip(hover_text.c_str());
+		}
+	}
+
+	ImGui::EndChild();
 #if _DEBUG
 	ImGui::InputInt("Test Delay", &test_delay, 10);
 	if (test_delay < 10)
@@ -389,7 +388,7 @@ void MainView::OnKeyPress(int key, int scancode, int mods)
 				r_btn_text_[i] = std::string(str);
 			else
 				r_btn_text_[i] = std::to_string(key);
-			
+
 			r_btn_key_codes_[i] = key;
 			selected_keys_[key] = true;
 

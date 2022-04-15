@@ -9,7 +9,7 @@ public:
 	static Config* Current(Config* change = nullptr);
 
 	const char* NAME = "RMB";
-	const uint32_t WIDTH = 720;
+	const uint32_t WIDTH = 420;
 	const uint32_t HEIGHT = 500;
 
 	uint32_t TOGGLE_MODIFIER;

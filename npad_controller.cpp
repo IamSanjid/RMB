@@ -99,7 +99,7 @@ public:
 			updated = false;
 		}
 
-		END:
+	END:
 		float end_wasted_time = static_cast<float>(Application::GetTotalRunningTime());
 		last_update_ += end_wasted_time - start_wasted_time;
 	}
@@ -140,7 +140,7 @@ private:
 class ButtonInputDevice final : public InputDevice
 {
 public:
-	void OnUpdate() override 
+	void OnUpdate() override
 	{
 		if (stopped_)
 		{
@@ -172,7 +172,7 @@ public:
 		pressed_buttons_[status.value] = status.reset;
 	}
 
-	void OnStop() override 
+	void OnStop() override
 	{
 		stopped_ = true;
 	}
@@ -187,7 +187,7 @@ NpadController::NpadController()
 	: input_devices_({
 		new StickInputDevice(),
 		new ButtonInputDevice()
-	})
+		})
 {
 	update_thread = std::jthread([this](std::stop_token stop_token) { UpdateThread(stop_token); });
 }

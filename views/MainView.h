@@ -45,7 +45,6 @@ private:
 	bool mouse_btn_changing_[3]{ false };
 
 	int modifier_selected, key_selected;
-	bool show_conf_input = false;
 
 	const char* modifiers[3] = { "Control", "Shift", "Alt" };
 	std::vector<uint32_t> glfw_modifiers;

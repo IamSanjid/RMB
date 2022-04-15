@@ -128,6 +128,7 @@ bool Application::Initialize(const char* name, uint32_t width, uint32_t height)
 	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 	main_window_ = glfwCreateWindow(width, height, name, NULL, NULL);
 	if (main_window_ == NULL)
 		return false;
