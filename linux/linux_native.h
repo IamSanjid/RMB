@@ -28,10 +28,11 @@ public:
 	void SendKeysDown(uint32_t* keys, size_t count) override;
 	void SendKeysUp(uint32_t* keys, size_t count) override;
 	void SetMousePos(int x, int y) override;
-	bool SetFocusOnProcess(const std::string& process_name) override;
+	void GetMousePos(int* x_ret, int* y_ret) override;
+	bool IsMainWindowActive(const std::string& window_name) override;
+	bool SetFocusOnWindow(const std::string& window_name) override;
 	void CursorHide(bool hide) override;
 	void Update() override;
-	void GetMousePos(int* x_ret, int* y_ret) override;
 
 private:
 	struct ScanCodeInfo
@@ -59,6 +60,7 @@ private:
 	void EnumAllWindow(EnumWindowProc enumWindowProc, void* userDefinedPtr);
 	static void HookEvent(XPointer closeure, XRecordInterceptData* recorded_data);
 
+	bool EWMHIsSupported(const char* feature);
 	bool ActivateWindow(Window window);
 	void SendKey(int key, bool is_down);
 	void SendModifier(int modmask, int is_press);

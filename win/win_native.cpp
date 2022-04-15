@@ -160,7 +160,29 @@ void WinNative::GetMousePos(int* x_ret, int* y_ret)
 	}
 }
 
-bool WinNative::SetFocusOnProcess(const std::string& process_name)
+bool WinNative::IsMainWindowActive(const std::string& window_name)
+{
+	HWND active_window = ::GetForegroundWindow();
+	if (!active_window)
+		return false;
+	DWORD id;
+	GetWindowThreadProcessId(active_window, &id);
+
+	char path[MAX_PATH];
+	DWORD size = MAX_PATH;
+	HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, id);
+	QueryFullProcessImageNameA(hProc, 0, path, &size);
+	CloseHandle(hProc);
+
+	if (size && strstr(path, window_name.c_str()) != NULL
+		&& GetWindow(active_window, GW_OWNER) == (HWND)0 && IsWindowVisible(active_window))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool WinNative::SetFocusOnWindow(const std::string& window_name)
 {
 	struct process_finder
 	{
@@ -188,7 +210,7 @@ bool WinNative::SetFocusOnProcess(const std::string& process_name)
 		}
 		return TRUE;
 	};
-	process_finder finder = { process_name.c_str(), NULL };
+	process_finder finder = { window_name.c_str(), NULL };
 	EnumWindows(EnumWindowsProc, (LPARAM)&finder);
 	if (finder.found_process)
 	{
@@ -213,7 +235,8 @@ bool WinNative::SetFocusOnProcess(const std::string& process_name)
 
 void WinNative::CursorHide(bool hide)
 {
-	if (hide)
+	static bool is_hidden = false;
+	if (hide && !is_hidden)
 	{
 		// Save a copy of the default cursor
 		if (!default_arrow_)
@@ -229,14 +252,16 @@ void WinNative::CursorHide(bool hide)
 		auto noCursor = CreateCursor(nullptr, 1, 1, 1, 1, ANDmaskCursor, XORmaskCursor);
 		SetSystemCursor(noCursor, OCR_NORMAL);
 		DestroyCursor(noCursor);
+		is_hidden = true;
 	}
-	else
+	else if (!hide && is_hidden)
 	{
 		SetSystemCursor(default_arrow_, OCR_NORMAL);
 		DestroyCursor(default_arrow_);
 
 		HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
 		default_arrow_ = CopyCursor(arrowHandle);
+		is_hidden = false;
 	}
 }
 

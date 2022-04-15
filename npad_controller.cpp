@@ -159,17 +159,16 @@ public:
 
 	void OnChange(int index, const InputStatus& status) override
 	{
-		(void)index;
 		std::lock_guard<std::mutex> lock{ mutex };
 		if (status.reset)
 		{
-			Native::GetInstance()->SendKeysUp((uint32_t*)&status.value, 1);
+			Native::GetInstance()->SendKeysUp((uint32_t*)&index, 1);
 		}
 		else
 		{
-			Native::GetInstance()->SendKeysDown((uint32_t*)&status.value, 1);
+			Native::GetInstance()->SendKeysDown((uint32_t*)&index, 1);
 		}
-		pressed_buttons_[status.value] = status.reset;
+		pressed_buttons_[index] = status.reset;
 	}
 
 	void OnStop() override
@@ -222,7 +221,7 @@ void NpadController::SetStick(float raw_x, float raw_y)
 
 void NpadController::SetButton(int button, int value)
 {
-	input_devices_[ButtonInputDeviceIndex]->OnChange(0, { value == 0, button });
+	input_devices_[ButtonInputDeviceIndex]->OnChange(button, { value == 0, 0.f });
 }
 
 void NpadController::OnChange()
@@ -232,8 +231,8 @@ void NpadController::OnChange()
 
 	auto last_x = axes_.x, last_y = axes_.y;
 
-	axes_.x = static_cast<int32_t>(last_x_ * camera_update);
-	axes_.y = static_cast<int32_t>(last_y_ * camera_update);
+	axes_.x = (last_x_ * camera_update);
+	axes_.y = (last_y_ * camera_update);
 
 	InputStatus x_status{ axes_.x == 0, (axes_.x == 0 ? last_x : axes_.x) };
 	InputStatus y_status{ axes_.y == 0, (axes_.y == 0 ? last_y : axes_.y) };

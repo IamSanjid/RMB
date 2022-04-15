@@ -36,9 +36,11 @@ public:
 	bool IsPanning() const { return panning_started_; }
 
 private:
-	void DetectMouseMove(int center_x, int center_y);
+	void DetectMouseMove();
 	void OnHotkey(HotkeyEvent* evt);
 	void OnMouseButton(MouseButtonEvent* evt);
+	void OnMouseMove(int x, int y);
+	void UpdateMouseVisibility(double new_moved_time = 0.0);
 
 	static void OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 

@@ -9,6 +9,7 @@ public:
 	static Config* Current(Config* change = nullptr);
 
 	const char* NAME = "RMB";
+	const char* TARGET_NAME = "Ryujinx";
 	const uint32_t WIDTH = 420;
 	const uint32_t HEIGHT = 500;
 

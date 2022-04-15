@@ -180,6 +180,7 @@ LinuxNative::~LinuxNative()
 		XCloseDisplay(display_);
 	}
 	registered_keys_.clear();
+	CursorHide(false);
 	instance_ = nullptr;
 }
 
@@ -317,6 +318,21 @@ void LinuxNative::SetMousePos(int x, int y)
 	XFlush(display_);
 }
 
+void LinuxNative::GetMousePos(int* x_ret, int* y_ret)
+{
+	int def_x, def_y;
+	if (GetDefaultScreenMousePos(&def_x, &def_y, NULL, NULL))
+	{
+		*x_ret = def_x;
+		*y_ret = def_y;
+	}
+	else
+	{
+		*x_ret = 0;
+		*y_ret = 0;
+	}
+}
+
 static int IgnoreBadWindow(Display* dpy, XErrorEvent* xerr)
 {
 	if (xerr->error_code == BadWindow)
@@ -325,7 +341,54 @@ static int IgnoreBadWindow(Display* dpy, XErrorEvent* xerr)
 	return xerr->error_code;
 }
 
-bool LinuxNative::SetFocusOnProcess(const std::string& process_name)
+bool LinuxNative::IsMainWindowActive(const std::string& window_name)
+{
+	static auto atom_window_type_id = XInternAtom(display_, "_NET_WM_WINDOW_TYPE", True);
+	static auto atom_target_type = XInternAtom(display_, "_NET_WM_WINDOW_TYPE_NORMAL", True);
+	if (!EWMHIsSupported("_NET_ACTIVE_WINDOW"))
+	{
+		return false;
+	}
+
+	bool is_active = false;
+
+	auto old_error_handler = XSetErrorHandler(IgnoreBadWindow);
+
+	long nitems;
+	auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", False);
+	auto root = XDefaultRootWindow(display_);
+	auto data = GetWindowPropertyByAtom(root, request, &nitems, NULL, NULL);
+	if (nitems > 0)
+	{
+		auto active_window = *(Window*)data;
+
+		XWindowAttributes attr;
+		XClassHint classhint;
+		XGetWindowAttributes(display_, active_window, &attr);
+
+		if (attr.map_state != IsViewable)
+		{
+			is_active = false;
+		}
+		else if (XGetClassHint(display_, active_window, &classhint))
+		{
+			if (classhint.res_name && strstr(classhint.res_name, window_name.c_str()))
+			{
+				Atom* atom_window_type = (Atom*)GetWindowPropertyByAtom(active_window, atom_window_type_id);
+				is_active = atom_window_type && atom_target_type == *atom_window_type;
+				free(atom_window_type);
+			}
+			XFree(classhint.res_name);
+			XFree(classhint.res_class);
+		}
+
+		free(data);
+	}
+	XSetErrorHandler(old_error_handler);
+	return is_active;
+}
+
+bool LinuxNative::SetFocusOnWindow(const std::string& window_name)
 {
 	struct EnumWind
 	{
@@ -333,7 +396,7 @@ bool LinuxNative::SetFocusOnProcess(const std::string& process_name)
 		const char* target_proc_name;
 		bool result = false;
 	};
-	EnumWind enum_wind{ this, process_name.c_str() };
+	EnumWind enum_wind{ this, window_name.c_str() };
 
 	EnumAllWindow([](Window window, void* ptr)
 	{
@@ -400,7 +463,7 @@ void LinuxNative::CursorHide(bool hide)
 		}
 		is_hidden = true;
 	}
-	else if (is_hidden)
+	else if (!hide && is_hidden)
 	{
 		for (int screen = 0; screen < screencount; screen++)
 		{
@@ -414,21 +477,6 @@ void LinuxNative::CursorHide(bool hide)
 
 	XSync(display_, False);
 	XFlush(display_);
-}
-
-void LinuxNative::GetMousePos(int* x_ret, int* y_ret)
-{
-	int def_x, def_y;
-	if (GetDefaultScreenMousePos(&def_x, &def_y, NULL, NULL))
-	{
-		*x_ret = def_x;
-		*y_ret = def_y;
-	}
-	else
-	{
-		*x_ret = 0;
-		*y_ret = 0;
-	}
 }
 
 bool LinuxNative::GetDefaultScreenMousePos(int* x_ret, int* y_ret, int* screen_ret, Window* window_ret)
@@ -588,36 +636,36 @@ void LinuxNative::SendModifier(int modmask, int is_press)
 	XFreeModifiermap(modifiers);
 }
 
+bool LinuxNative::EWMHIsSupported(const char* feature)
+{
+	long nitems = 0L;
+	Atom* results = NULL;
+	long i = 0;
+
+	Window root;
+	Atom request;
+	Atom feature_atom;
+
+	request = XInternAtom(display_, "_NET_SUPPORTED", False);
+	feature_atom = XInternAtom(display_, feature, False);
+	root = XDefaultRootWindow(display_);
+
+	results = (Atom*)GetWindowPropertyByAtom(root, request, &nitems);
+	for (i = 0L; i < nitems; i++)
+	{
+		if (results[i] == feature_atom)
+		{
+			free(results);
+			return True;
+		}
+	}
+	free(results);
+
+	return False;
+}
+
 bool LinuxNative::ActivateWindow(Window window)
 {
-	auto EWMHIsSupported = [&](const char* feature)
-	{
-		long nitems = 0L;
-		Atom* results = NULL;
-		long i = 0;
-
-		Window root;
-		Atom request;
-		Atom feature_atom;
-
-		request = XInternAtom(display_, "_NET_SUPPORTED", False);
-		feature_atom = XInternAtom(display_, feature, False);
-		root = XDefaultRootWindow(display_);
-
-		results = (Atom*)GetWindowPropertyByAtom(root, request, &nitems);
-		for (i = 0L; i < nitems; i++)
-		{
-			if (results[i] == feature_atom)
-			{
-				free(results);
-				return True;
-			}
-		}
-		free(results);
-
-		return False;
-	};
-
 	if (EWMHIsSupported("_NET_ACTIVE_WINDOW") == False)
 	{
 		return False;

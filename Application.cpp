@@ -164,20 +164,11 @@ void Application::Run()
 
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-	int monitorX, monitorY;
-
-	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-
-	glfwGetMonitorPos(monitor, &monitorX, &monitorY);
-
-	int center_x = videoMode->width / 2, center_y = videoMode->height / 2;
-
 	while (!glfwWindowShouldClose(main_window_))
 	{
 		Native::GetInstance()->Update();
 		EventBus::Instance().update();
-		DetectMouseMove(center_x, center_y);
+		DetectMouseMove();
 
 		glfwPollEvents();
 
@@ -234,51 +225,37 @@ void Application::TogglePanning()
 {
 	if (!panning_started_)
 	{
-		if (Config::Current()->AUTO_FOCUS_RYU && !Native::GetInstance()->SetFocusOnProcess("Ryujinx"))
+		if (Config::Current()->AUTO_FOCUS_RYU && !Native::GetInstance()->SetFocusOnWindow(Config::Current()->TARGET_NAME))
 			return;
 		panning_started_ = true;
-#if !defined(_DEBUG)
-		if (Config::Current()->HIDE_MOUSE)
-			Native::GetInstance()->CursorHide(true);
-#endif
 		glfwIconifyWindow(main_window_);
 	}
 	else
 	{
 		panning_started_ = false;
 		controller_->ClearState();
-		Native::GetInstance()->CursorHide(false);
+		UpdateMouseVisibility(GetTotalRunningTime());
 	}
 }
 
-void Application::DetectMouseMove(int center_x, int center_y)
+void Application::DetectMouseMove()
 {
 	static int last_cursor_x = 0, last_cursor_y = 0;
-	static bool mouse_change_started = false;
-
-	if (!panning_started_)
-	{
-		mouse_change_started = false;
-		return;
-	}
 
 	int x = 0, y = 0;
 	Native::GetInstance()->GetMousePos(&x, &y);
 
-	if (!mouse_change_started)
-	{
-		last_cursor_x = x; last_cursor_y = y;
-		mouse_change_started = true;
-		Native::GetInstance()->SetMousePos(center_x, center_y);
-		return;
-	}
-
 	if (x != last_cursor_x || y != last_cursor_y)
 	{
 		last_cursor_x = x; last_cursor_y = y;
-		Native::GetInstance()->SetMousePos(center_x, center_y);
-		mouse_->MouseMoved(x, y, center_x, center_y);
+		OnMouseMove(x, y);
 	}
+
+	if (Config::Current()->HIDE_MOUSE)
+	{
+		UpdateMouseVisibility();
+	}
+	std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void Application::OnHotkey(HotkeyEvent* evt)
@@ -296,7 +273,7 @@ void Application::OnHotkey(HotkeyEvent* evt)
 
 void Application::OnMouseButton(MouseButtonEvent* evt)
 {
-	if (!Config::Current()->BIND_MOUSE_BUTTON)
+	if (!Config::Current()->BIND_MOUSE_BUTTON || !Native::GetInstance()->IsMainWindowActive(Config::Current()->TARGET_NAME))
 		return;
 	switch (evt->key_)
 	{
@@ -318,6 +295,43 @@ void Application::OnMouseButton(MouseButtonEvent* evt)
 			controller_->SetButton(Config::Current()->MIDDLE_MOUSE_KEY, evt->is_pressed_);
 		}
 		break;
+	}
+}
+
+void Application::OnMouseMove(int x, int y)
+{
+	if (panning_started_ && Native::GetInstance()->IsMainWindowActive(Config::Current()->TARGET_NAME))
+	{
+		const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		int center_x = videoMode->width / 2, center_y = videoMode->height / 2;
+
+		mouse_->MouseMoved(x, y, center_x, center_y);
+		Native::GetInstance()->SetMousePos(center_x, center_y);
+	}
+	else
+	{
+		UpdateMouseVisibility(GetTotalRunningTime());
+	}
+}
+
+void Application::UpdateMouseVisibility(double new_moved_time)
+{
+	constexpr double default_mouse_hide_timeout = 2500;
+	static double last_mouse_moved = GetTotalRunningTime();
+
+	if (new_moved_time > 0.0)
+	{
+		last_mouse_moved = new_moved_time;
+		Native::GetInstance()->CursorHide(false);
+		return;
+	}
+
+	double current_time = GetTotalRunningTime();
+	double time_passed = current_time - last_mouse_moved;
+	if (time_passed >= default_mouse_hide_timeout)
+	{
+		Native::GetInstance()->CursorHide(Native::GetInstance()->IsMainWindowActive(Config::Current()->TARGET_NAME));
+		last_mouse_moved = current_time;
 	}
 }
 

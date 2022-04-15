@@ -25,7 +25,8 @@ public:
 	void SendKeysUp(uint32_t* keys, size_t count) override;
 	void SetMousePos(int x, int y) override;
 	void GetMousePos(int* x_ret, int* y_ret) override;
-	bool SetFocusOnProcess(const std::string& process_name) override;
+	bool IsMainWindowActive(const std::string& window_name) override;
+	bool SetFocusOnWindow(const std::string& process_name) override;
 	void CursorHide(bool hide) override;
 	void Update() override {};
 

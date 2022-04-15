@@ -7,8 +7,8 @@ constexpr int BUTTONS = 4;
 
 struct Axes
 {
-	int x;
-	int y;
+	float x;
+	float y;
 
 	bool left;
 	bool right;
@@ -19,7 +19,7 @@ struct Axes
 struct InputStatus
 {
 	bool reset;
-	int value;
+	float value;
 };
 
 class InputDevice;

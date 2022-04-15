@@ -144,7 +144,7 @@ void MainView::Show()
 
 	ImGui::NewLine();
 
-	ImGui::Checkbox("Hide Mouse in Panning Mode", &Config::Current()->HIDE_MOUSE);
+	ImGui::Checkbox("Hide Mouse on inactivity", &Config::Current()->HIDE_MOUSE);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Hides the normal mouse cursor.");
 	ImGui::Checkbox("Auto Focus Ryujinx", &Config::Current()->AUTO_FOCUS_RYU);
