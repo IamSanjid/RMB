@@ -1,4 +1,6 @@
 #include "npad_controller.h"
+#include <stdint.h>
+#include <cmath>
 
 #include "native.h"
 #include "Config.h"
@@ -76,8 +78,7 @@ public:
 		}
 		
 		std::vector<ButtonTimeout> current_timeouts;
-		timeout_queue_.Pop(current_timeouts);
-		if (!current_timeouts.empty())
+		if (timeout_queue_.Pop(current_timeouts))
 		{
 			for (auto& timeout : current_timeouts)
 			{

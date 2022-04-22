@@ -28,23 +28,23 @@ public:
 		delete writing;
 	}
 
-	void Push(const T& element)
+	bool Push(const T& element)
 	{
-		Push_Element(element);
+		return Push_Element(element);
 	}
 
-	void Push(T&& element)
+	bool Push(T&& element)
 	{
-		Push_Element(std::move(element));
+		return Push_Element(std::move(element));
 	}
 
-	void Pop(std::vector<T>& ret_vals)
+	bool Pop(std::vector<T>& ret_vals)
 	{
 		std::lock_guard<std::mutex> lock{ read_mutex };
 
 		if (!reading || !reading->value)
 		{
-			return;
+			return false;
 		}
 
 		Linked* current_reading = reading;
@@ -63,6 +63,7 @@ public:
 
 		/* the next place where we will find the next data it either can be empty or have some value */
 		reading = current_reading;
+		return true;
 	}
 
 	void Clear()
@@ -86,20 +87,22 @@ public:
 
 private:
 	template <class... _Tys>
-	void Push_Element(_Tys&&... vals)
+	bool Push_Element(_Tys&&... vals)
 	{
 		Linked* next_writing = new Linked{ 0 };
 
 		if (!next_writing)
 		{
-			throw std::exception("new memory not available!");
+			//new memory not available!
+			return false;
 		}
 
 		std::lock_guard<std::mutex> lock{ write_mutex };
 
 		if (!writing || writing->value)
 		{
-			throw std::exception("some race condition need to be fixed!");
+			//some race condition needs to be fixed!
+			return false;
 		}
 
 		writing->next = next_writing;
@@ -107,6 +110,7 @@ private:
 
 		/* pointing to the new memory where we will be writing new data next time */
 		writing = next_writing;
+		return true;
 	}
 
 	void Reset()
@@ -115,7 +119,8 @@ private:
 
 		if (!starting_linked)
 		{
-			throw std::exception("memory not available!");
+			// memory not available!
+			return;
 		}
 
 		reading = starting_linked;
