@@ -97,6 +97,9 @@
     <ClInclude Include="Utils\iniparser.hpp">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="linked_queue.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">

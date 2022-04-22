@@ -1,13 +1,12 @@
 #include "npad_controller.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <cmath>
-#include <queue>
 
 #include "native.h"
 #include "Config.h"
 #include "Utils.h"
 #include "Application.h"
+#include "linked_queue.h"
+
+constexpr int BUTTONS = 4;
 
 /* TODO: make these configurable */
 const float deadzone = 0.09f;
@@ -19,10 +18,10 @@ constexpr int x_axis = 0;
 constexpr int y_axis = 1;
 
 /* TODO: instead of hardcoding try to retrieve the index dynamically using Enum and indentifier/hashing */
-constexpr int StickInputDeviceIndex = 0;
-constexpr int ButtonInputDeviceIndex = 1;
+constexpr int StickInputHandlerIndex = 0;
+constexpr int ButtonInputHandlerIndex = 1;
 
-class InputDevice
+class InputHandler
 {
 public:
 	virtual void OnUpdate() = 0;
@@ -30,7 +29,7 @@ public:
 	virtual void OnStop() = 0;
 };
 
-class StickInputDevice final : public InputDevice
+class StickInputHandler final : public InputHandler
 {
 public:
 	void OnUpdate() override
@@ -51,10 +50,12 @@ public:
 				}
 				timeouts_[i] = 0.0f;
 			}
+			timeout_queue_.Clear();
 			stopped_ = false;
-			std::lock_guard<std::mutex> lock{ mutex };
-			timeout_queue_ = {};
-			goto END;
+
+			float end_wasted_time = static_cast<float>(Application::GetTotalRunningTime());
+			last_update_ += end_wasted_time - start_wasted_time;
+			return;
 		}
 
 		if (time_passed != last_update_)
@@ -63,24 +64,23 @@ public:
 			{
 				if (timeouts_[i] > 0.0f)
 				{
-					if (time_passed >= timeouts_[i])
+					timeouts_[i] -= time_passed;
+					if (timeouts_[i] <= 0.001f)
 					{
 						Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[i], 1);
 						timeouts_[i] = 0.0f;
 						continue;
 					}
-					timeouts_[i] -= time_passed;
 				}
 			}
 		}
-
-		if (updated)
+		
+		std::vector<ButtonTimeout> current_timeouts;
+		timeout_queue_.Pop(current_timeouts);
+		if (!current_timeouts.empty())
 		{
-			std::lock_guard<std::mutex> lock{ mutex };
-			while (!timeout_queue_.empty())
+			for (auto& timeout : current_timeouts)
 			{
-				const auto& timeout = timeout_queue_.front();
-
 				if (timeouts_[timeout.button] != timeout.time)
 				{
 					if (timeout.time <= 0.0f)
@@ -93,27 +93,25 @@ public:
 					}
 					timeouts_[timeout.button] = timeout.time;
 				}
-
-				timeout_queue_.pop();
 			}
-			updated = false;
 		}
 
-	END:
 		float end_wasted_time = static_cast<float>(Application::GetTotalRunningTime());
 		last_update_ += end_wasted_time - start_wasted_time;
 	}
 
 	void OnChange(int index, const InputStatus& status) override
 	{
-		std::lock_guard<std::mutex> lock{ mutex };
+		if (stopped_)
+			return;
 
 		int button = (index * 2) + (Utils::sign(status.value) == 1);
-		//int opposite_button = (index * 2) + (Utils::sign(status.value) != 1);
-		float time = status.reset ? 0.0f : static_cast<float>(std::abs(status.value));
+		int opposite_button = (index * 2) + (Utils::sign(status.value) != 1);
+		float time = status.reset ? 0.0f : std::abs(status.value);
 
-		timeout_queue_.push({ button, time });
-		updated = true;
+		timeout_queue_.Push({ button, time });
+		timeout_queue_.Push({ opposite_button, 0.f });
+
 	}
 
 	void OnStop() override
@@ -131,13 +129,10 @@ private:
 	float timeouts_[BUTTONS]{};
 	float last_update_{};
 	bool stopped_{};
-	bool updated{};
-	std::queue<ButtonTimeout> timeout_queue_{};
-
-	mutable std::mutex mutex;
+	LinkedQueue<ButtonTimeout> timeout_queue_{};
 };
 
-class ButtonInputDevice final : public InputDevice
+class ButtonInputHandler final : public InputHandler
 {
 public:
 	void OnUpdate() override
@@ -160,6 +155,9 @@ public:
 	void OnChange(int index, const InputStatus& status) override
 	{
 		std::lock_guard<std::mutex> lock{ mutex };
+		if (stopped_)
+			return;
+
 		if (status.reset)
 		{
 			Native::GetInstance()->SendKeysUp((uint32_t*)&index, 1);
@@ -183,9 +181,9 @@ private:
 };
 
 NpadController::NpadController()
-	: input_devices_({
-		new StickInputDevice(),
-		new ButtonInputDevice()
+	: input_handlers_({
+		new StickInputHandler(),
+		new ButtonInputHandler()
 		})
 {
 	update_thread = std::jthread([this](std::stop_token stop_token) { UpdateThread(stop_token); });
@@ -195,9 +193,9 @@ void NpadController::UpdateThread(std::stop_token stop_token)
 {
 	while (!stop_token.stop_requested())
 	{
-		for (auto& input_device : input_devices_)
+		for (auto& handler : input_handlers_)
 		{
-			input_device->OnUpdate();
+			handler->OnUpdate();
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
@@ -221,7 +219,7 @@ void NpadController::SetStick(float raw_x, float raw_y)
 
 void NpadController::SetButton(int button, int value)
 {
-	input_devices_[ButtonInputDeviceIndex]->OnChange(button, { value == 0, 0.f });
+	input_handlers_[ButtonInputHandlerIndex]->OnChange(button, { value == 0, 0 });
 }
 
 void NpadController::OnChange()
@@ -231,14 +229,14 @@ void NpadController::OnChange()
 
 	auto last_x = axes_.x, last_y = axes_.y;
 
-	axes_.x = (last_x_ * camera_update);
-	axes_.y = (last_y_ * camera_update);
+	axes_.x = static_cast<int>(last_x_ * camera_update);
+	axes_.y = static_cast<int>(last_y_ * camera_update);
 
 	InputStatus x_status{ axes_.x == 0, (axes_.x == 0 ? last_x : axes_.x) };
 	InputStatus y_status{ axes_.y == 0, (axes_.y == 0 ? last_y : axes_.y) };
 
-	input_devices_[StickInputDeviceIndex]->OnChange(x_axis, x_status);
-	input_devices_[StickInputDeviceIndex]->OnChange(y_axis, y_status);
+	input_handlers_[StickInputHandlerIndex]->OnChange(x_axis, x_status);
+	input_handlers_[StickInputHandlerIndex]->OnChange(y_axis, y_status);
 
 	axes_.right = last_x_ > threshold;
 	axes_.left = last_x_ < -threshold;
@@ -246,8 +244,11 @@ void NpadController::OnChange()
 	axes_.down = last_y_ < -threshold;
 
 #if _DEBUG
-	fprintf(stdout, "axes_change: %d, %d - actual_value: %f, %f\n", axes_.x, axes_.y, last_x_, last_y_);
-	fprintf(stdout, "right: %d left: %d up: %d down: %d\n", axes_.right, axes_.left, axes_.up, axes_.down);
+	if (axes_.x != 0 || axes_.y != 0)
+	{
+		fprintf(stdout, "axes_change: %d, %d - actual_value: %f, %f\n", axes_.x, axes_.y, last_x_, last_y_);
+		fprintf(stdout, "right: %d left: %d up: %d down: %d\n", axes_.right, axes_.left, axes_.up, axes_.down);
+	}
 #endif
 }
 
@@ -256,7 +257,7 @@ void NpadController::ClearState()
 	last_raw_x_ = last_raw_y_ = last_x_ = last_y_ = 0.f;
 	axes_ = {};
 
-	for (auto& input_device : input_devices_)
+	for (auto& input_device : input_handlers_)
 	{
 		input_device->OnStop();
 	}

@@ -3,12 +3,10 @@
 #include <mutex>
 #include <vector>
 
-constexpr int BUTTONS = 4;
-
 struct Axes
 {
-	float x;
-	float y;
+	int x;
+	int y;
 
 	bool left;
 	bool right;
@@ -19,12 +17,12 @@ struct Axes
 struct InputStatus
 {
 	bool reset;
-	float value;
+	int value;
 };
 
-class InputDevice;
-class ButtonInputDevice;
-class StickInputDevice;
+class InputHandler;
+class ButtonInputHandler;
+class StickInputHandler;
 
 class NpadController
 {
@@ -41,7 +39,7 @@ private:
 	void OnChange();
 	void SanatizeAxes(float raw_x, float raw_y, bool clamp_value);
 
-	std::vector<InputDevice*> input_devices_;
+	std::vector<InputHandler*> input_handlers_;
 
 	float last_raw_x_;
 	float last_raw_y_;

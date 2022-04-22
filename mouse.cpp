@@ -34,36 +34,36 @@ void Mouse::MouseMoved(int x, int y, int center_x, int center_y)
 	auto time = angle * (angle_update_time / 90.0);*/
 	/* copied from yuzu: https://github.com/yuzu-emu/yuzu/blob/bf3c6f88126d0167329c4a18759cdabc7584f8b3/src/input_common/drivers/mouse.cpp#L74 */
 
-	if (move_distance < 3.0f)
+	/*if (move_distance < 3.0f)
 	{
 		mouse_change /= move_distance;
 		mouse_change *= 3.0f;
-	}
+	}*/
 
 	int x_dir = Utils::sign(mouse_change.x);
 	int y_dir = Utils::sign(mouse_change.y);
 
-	bool x_dir_changed = x_dir != 0 && Utils::sign(last_mouse_change_.x) != x_dir;
-	bool y_dir_changed = y_dir != 0 && Utils::sign(last_mouse_change_.y) != y_dir;
+	bool x_dir_changed = Utils::sign(last_mouse_change_.x) != x_dir;
+	bool y_dir_changed = Utils::sign(last_mouse_change_.y) != y_dir;
 
-	last_mouse_change_ = (last_mouse_change_ * 0.91f) + (mouse_change * 0.09f);
+	last_mouse_change_ = (last_mouse_change_ * 0.71f) + (mouse_change * 0.29f);
 
-	if (x_dir_changed)
+	if (x_dir != 0 && x_dir_changed)
 	{
 		last_mouse_change_.x = mouse_change.x / mouse_change.mag();
 	}
 
-	if (y_dir_changed)
+	if (y_dir != 0 && y_dir_changed)
 	{
 		last_mouse_change_.y = mouse_change.y / mouse_change.mag();
 	}
 
 	const auto last_move_distance = last_mouse_change_.mag();
 
-	if (last_move_distance > 8.0f)
+	if (last_move_distance > 10.f)
 	{
 		last_mouse_change_ /= last_move_distance;
-		last_mouse_change_ *= 8.0f;
+		last_mouse_change_ *= 10.0f;
 	}
 
 	if (last_move_distance < 1.0f)
@@ -113,13 +113,13 @@ void Mouse::UpdateThread(std::stop_token stop_token)
 	{
 		if (Application::GetInstance()->IsPanning())
 		{
-			last_mouse_change_ *= 0.8f;
+			last_mouse_change_ *= 0.75f;
 
-			const float sensitivity = Config::Current()->SENSITIVITY * 0.025f;
+			const float sensitivity = Config::Current()->SENSITIVITY * 0.015f;
 			Application::GetController()->SetStick(last_mouse_change_.x * sensitivity, last_mouse_change_.y * sensitivity);
 		}
 
-		if (mouse_panning_timeout_++ > 20)
+		if (mouse_panning_timeout_++ > 15)
 		{
 			StopPanning();
 		}

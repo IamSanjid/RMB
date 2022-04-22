@@ -166,13 +166,13 @@ void MainView::Show()
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Camera sensitivity. The higher the faster the camera\nview will be changed.");
 
-	ImGui::Text("Camera Update Time(%%):");
-	if (ImGui::InputFloat(" ", &Config::Current()->CAMERA_UPDATE_TIME, 0.5f, 5.0f, "%0.3f"))
+	ImGui::Text("Camera Update Time:");
+	if (ImGui::InputFloat("  ", &Config::Current()->CAMERA_UPDATE_TIME, 1.0f, 5.0f, "%0.3f"))
 	{
 		if (Config::Current()->CAMERA_UPDATE_TIME < 10.f)
 			Config::Current()->CAMERA_UPDATE_TIME = 10.f;
-		else if (Config::Current()->CAMERA_UPDATE_TIME > 100.f)
-			Config::Current()->CAMERA_UPDATE_TIME = 100.f;
+		else if (Config::Current()->CAMERA_UPDATE_TIME > 1000.f)
+			Config::Current()->CAMERA_UPDATE_TIME = 1000.f;
 	}
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Base camera update time, the lower the slower it will\nupdate the camera. Kind of like sensitivity but not\nrecommended to change.\nBut you may need to change it for different games.");

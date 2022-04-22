@@ -164,14 +164,22 @@ void Application::Run()
 
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+	/* worker thread */
+	auto update_thread = std::jthread
+	{
+		[this](std::stop_token stop_token)
+		{ 
+			while (!stop_token.stop_requested())
+			{
+				Update();
+			}
+			fprintf(stdout, "Exiting Application.\n");
+		}
+	};
+
 	while (!glfwWindowShouldClose(main_window_))
 	{
-		Native::GetInstance()->Update();
-		EventBus::Instance().update();
-		DetectMouseMove();
-
-		glfwPollEvents();
-
+		glfwWaitEvents();
 		if (glfwGetWindowAttrib(main_window_, GLFW_ICONIFIED))
 		{
 			continue;
@@ -190,9 +198,17 @@ void Application::Run()
 		glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 		glfwSwapBuffers(main_window_);
 	}
+}
+
+void Application::Update()
+{
+	Native::GetInstance()->Update();
+	EventBus::Instance().update();
+	DetectMouseMove();
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void Application::Reconfig(Config* new_conf)
@@ -255,7 +271,7 @@ void Application::DetectMouseMove()
 	{
 		UpdateMouseVisibility();
 	}
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void Application::OnHotkey(HotkeyEvent* evt)

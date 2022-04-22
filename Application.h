@@ -36,6 +36,7 @@ public:
 	bool IsPanning() const { return panning_started_; }
 
 private:
+	void Update();
 	void DetectMouseMove();
 	void OnHotkey(HotkeyEvent* evt);
 	void OnMouseButton(MouseButtonEvent* evt);
