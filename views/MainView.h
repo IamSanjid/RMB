@@ -49,5 +49,5 @@ private:
 	const char* modifiers[3] = { "Control", "Shift", "Alt" };
 	std::vector<uint32_t> glfw_modifiers;
 	std::vector<uint32_t> glfw_keys;
-	std::vector<const char*> glfw_str_keys;
+	std::vector<std::string> glfw_str_keys;
 };

@@ -220,28 +220,30 @@ void Application::Reconfig(Config* new_conf)
 	else
 		Config::Current(Config::Default());
 
-	Config::Current()->TOGGLE_KEY = glfwGetKeyScancode(Config::Current()->TOGGLE_KEY);
-	Config::Current()->TOGGLE_MODIFIER = glfwGetKeyScancode(Config::Current()->TOGGLE_MODIFIER);
-	Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY, Config::Current()->TOGGLE_MODIFIER);
+	auto current_config = Config::Current();
+
+	current_config->TOGGLE_KEY = glfwGetKeyScancode(current_config->TOGGLE_KEY);
+	current_config->TOGGLE_MODIFIER = glfwGetKeyScancode(current_config->TOGGLE_MODIFIER);
+	Native::GetInstance()->RegisterHotKey(current_config->TOGGLE_KEY, current_config->TOGGLE_MODIFIER);
 
 	for (auto i = 0; i < 4; i++)
 	{
-		Config::Current()->RIGHT_STICK_KEYS[i] = glfwGetKeyScancode(Config::Current()->RIGHT_STICK_KEYS[i]);
+		current_config->RIGHT_STICK_KEYS[i] = glfwGetKeyScancode(current_config->RIGHT_STICK_KEYS[i]);
 	}
 
-	if (Config::Current()->LEFT_MOUSE_KEY)
-		Config::Current()->LEFT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->LEFT_MOUSE_KEY);
-	if (Config::Current()->RIGHT_MOUSE_KEY)
-		Config::Current()->RIGHT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->RIGHT_MOUSE_KEY);
-	if (Config::Current()->MIDDLE_MOUSE_KEY)
-		Config::Current()->MIDDLE_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->MIDDLE_MOUSE_KEY);
+	if (current_config->LEFT_MOUSE_KEY)
+		current_config->LEFT_MOUSE_KEY = glfwGetKeyScancode(current_config->LEFT_MOUSE_KEY);
+	if (current_config->RIGHT_MOUSE_KEY)
+		current_config->RIGHT_MOUSE_KEY = glfwGetKeyScancode(current_config->RIGHT_MOUSE_KEY);
+	if (current_config->MIDDLE_MOUSE_KEY)
+		current_config->MIDDLE_MOUSE_KEY = glfwGetKeyScancode(current_config->MIDDLE_MOUSE_KEY);
 }
 
 void Application::TogglePanning()
 {
 	if (!panning_started_)
 	{
-		if (Config::Current()->AUTO_FOCUS_RYU && !Native::GetInstance()->SetFocusOnWindow(Config::Current()->TARGET_NAME))
+		if (Config::Current()->AUTO_FOCUS_EMU_WINDOW && !Native::GetInstance()->SetFocusOnWindow(Config::Current()->TARGET_NAME))
 			return;
 		panning_started_ = true;
 		glfwIconifyWindow(main_window_);

@@ -9,7 +9,6 @@
 #include "../Application.h"
 #include "../Config.h"
 #include "../native.h"
-#include "../Utils/iniparser.hpp"
 
 const char* INI_FILE = "RMB.ini";
 
@@ -35,13 +34,7 @@ MainView::MainView()
 		if (scan_code)
 		{
 			std::string str = ("F" + std::to_string(f_key + 1 - GLFW_KEY_F1));
-			char* new_str = new char[str.length() + 1]{ 0 };
-#ifdef _MSC_VER
-			strcpy_s(new_str, str.length() + 1, str.c_str());
-#else
-			strcpy(new_str, str.c_str());
-#endif
-			glfw_str_keys.push_back(new_str);
+			glfw_str_keys.push_back(str);
 			glfw_keys.push_back(scan_code);
 			scancodes_to_glfw_[scan_code] = f_key;
 		}
@@ -78,9 +71,39 @@ MainView::~MainView()
 	SaveConfig();
 }
 
+
+static bool STDInputText(const char* label, std::string* str, ImGuiInputTextFlags flags = 0)
+{
+	struct InputTextCallback_UserData
+	{
+		std::string* Str;
+
+		static int InputTextCallback(ImGuiInputTextCallbackData* data)
+		{
+			InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
+			// Resize string callback
+			// If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
+			std::string* str = user_data->Str;
+			IM_ASSERT(data->Buf == str->c_str());
+			str->resize(data->BufTextLen);
+			data->Buf = (char*)str->c_str();
+			return 0;
+		}
+	};
+
+	IM_ASSERT((flags& ImGuiInputTextFlags_CallbackResize) == 0);
+	flags |= ImGuiInputTextFlags_CallbackResize;
+
+	InputTextCallback_UserData cb_user_data{};
+	cb_user_data.Str = str;
+	return ImGui::InputText(label, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback_UserData::InputTextCallback, &cb_user_data);
+}
+
 void MainView::Show()
 {
 	ImGuiIO& io = ImGui::GetIO();
+	auto current_config = Config::Current();
+
 	io.IniFilename = NULL;
 
 	ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
@@ -93,6 +116,11 @@ void MainView::Show()
 	{
 		Application::GetInstance()->TogglePanning();
 	}
+
+	ImGui::Text("Target Window:");
+	STDInputText("##target_window", &current_config->TARGET_NAME);
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("The target Emulator Window name.");
 
 	/* panning toggle hotkey changer.. */
 	ImGui::TextDisabled("Panning Toggle Hotkeys");
@@ -113,21 +141,21 @@ void MainView::Show()
 		ImGui::EndCombo();
 	}
 
-	if (Config::Current()->TOGGLE_MODIFIER != glfw_modifiers[modifier_selected])
+	if (current_config->TOGGLE_MODIFIER != glfw_modifiers[modifier_selected])
 	{
-		Native::GetInstance()->UnregisterHotKey(Config::Current()->TOGGLE_KEY, Config::Current()->TOGGLE_MODIFIER);
-		Config::Current()->TOGGLE_MODIFIER = glfw_modifiers[modifier_selected];
-		Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY, Config::Current()->TOGGLE_MODIFIER);
+		Native::GetInstance()->UnregisterHotKey(current_config->TOGGLE_KEY, current_config->TOGGLE_MODIFIER);
+		current_config->TOGGLE_MODIFIER = glfw_modifiers[modifier_selected];
+		Native::GetInstance()->RegisterHotKey(current_config->TOGGLE_KEY, current_config->TOGGLE_MODIFIER);
 	}
 
 	ImGui::Text("Key:      ");
 	ImGui::SameLine();
-	if (ImGui::BeginCombo("##key_combo", glfw_str_keys[key_selected]))
+	if (ImGui::BeginCombo("##key_combo", glfw_str_keys[key_selected].data()))
 	{
 		for (int n = 0; n < (int)glfw_str_keys.size(); n++)
 		{
 			bool is_selected = key_selected == n;
-			if (ImGui::Selectable(glfw_str_keys[n], is_selected))
+			if (ImGui::Selectable(glfw_str_keys[n].data(), is_selected))
 				key_selected = n;
 			if (is_selected)
 				ImGui::SetItemDefaultFocus();
@@ -135,44 +163,44 @@ void MainView::Show()
 		ImGui::EndCombo();
 	}
 
-	if (Config::Current()->TOGGLE_KEY != glfw_keys[key_selected])
+	if (current_config->TOGGLE_KEY != glfw_keys[key_selected])
 	{
-		Native::GetInstance()->UnregisterHotKey(Config::Current()->TOGGLE_KEY, Config::Current()->TOGGLE_MODIFIER);
-		Config::Current()->TOGGLE_KEY = glfw_keys[key_selected];
-		Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY, Config::Current()->TOGGLE_MODIFIER);
+		Native::GetInstance()->UnregisterHotKey(current_config->TOGGLE_KEY, current_config->TOGGLE_MODIFIER);
+		current_config->TOGGLE_KEY = glfw_keys[key_selected];
+		Native::GetInstance()->RegisterHotKey(current_config->TOGGLE_KEY, current_config->TOGGLE_MODIFIER);
 	}
 
 	ImGui::NewLine();
 
-	ImGui::Checkbox("Hide Mouse on inactivity", &Config::Current()->HIDE_MOUSE);
+	ImGui::Checkbox("Hide Mouse on inactivity", &current_config->HIDE_MOUSE);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Hides the normal mouse cursor on inactivity.");
-	ImGui::Checkbox("Auto Focus Ryujinx", &Config::Current()->AUTO_FOCUS_RYU);
+	ImGui::Checkbox("Auto Focus Emulator Window", &current_config->AUTO_FOCUS_EMU_WINDOW);
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Tries to focus Ryujinx after enabling mouse panning.");
-	ImGui::Checkbox("Bind Mouse Buttons", &Config::Current()->BIND_MOUSE_BUTTON);
+		ImGui::SetTooltip("Tries to focus the Emulator Window after enabling mouse panning.");
+	ImGui::Checkbox("Bind Mouse Buttons", &current_config->BIND_MOUSE_BUTTON);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Enable binding mouse buttons to keyboard keys.");
 
 	ImGui::Text("Sensitivity(%%):");
-	if (ImGui::InputFloat(" ", &Config::Current()->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
+	if (ImGui::InputFloat(" ", &current_config->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
 	{
-		if (Config::Current()->SENSITIVITY < 1.f)
-			Config::Current()->SENSITIVITY = 1.f;
-		else if (Config::Current()->SENSITIVITY > 100.f)
-			Config::Current()->SENSITIVITY = 100.f;
+		if (current_config->SENSITIVITY < 1.f)
+			current_config->SENSITIVITY = 1.f;
+		else if (current_config->SENSITIVITY > 100.f)
+			current_config->SENSITIVITY = 100.f;
 	}
 
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Camera sensitivity. The higher the faster the camera\nview will be changed.");
 
 	ImGui::Text("Camera Update Time:");
-	if (ImGui::InputFloat("  ", &Config::Current()->CAMERA_UPDATE_TIME, 1.0f, 5.0f, "%0.3f"))
+	if (ImGui::InputFloat("  ", &current_config->CAMERA_UPDATE_TIME, 1.0f, 5.0f, "%0.3f"))
 	{
-		if (Config::Current()->CAMERA_UPDATE_TIME < 10.f)
-			Config::Current()->CAMERA_UPDATE_TIME = 10.f;
-		else if (Config::Current()->CAMERA_UPDATE_TIME > 1000.f)
-			Config::Current()->CAMERA_UPDATE_TIME = 1000.f;
+		if (current_config->CAMERA_UPDATE_TIME < 10.f)
+			current_config->CAMERA_UPDATE_TIME = 10.f;
+		else if (current_config->CAMERA_UPDATE_TIME > 1000.f)
+			current_config->CAMERA_UPDATE_TIME = 1000.f;
 	}
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Base camera update time, the lower the slower it will\nupdate the camera. Kind of like sensitivity but not\nrecommended to change.\nBut you may need to change it for different games.");
@@ -182,12 +210,12 @@ void MainView::Show()
 	/* configure input keys */
 	auto window_size = ImGui::GetWindowSize();
 	float width = window_size.x * 0.5f;
-	float height = window_size.y * 0.375f;
+	float height = window_size.y * 0.345f;
 	float delta_width = width * 0.5f;
 
 	ImGui::Button("Configure Input");
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Configure Keyboard Keys to match with your Ryujinx\nconfiguration and bind mouse buttons with other\nkeyboard keys.");
+		ImGui::SetTooltip("Configure Keyboard Keys to match with your Emulator\nconfiguration and bind mouse buttons with other\nkeyboard keys.");
 
 	ImGui::SameLine();
 
@@ -250,11 +278,11 @@ void MainView::Show()
 			else
 			{
 				selected_keys_[r_btn_key_codes_[i]] = true;
-				auto str = glfwGetKeyName(r_btn_key_codes_[i], Config::Current()->RIGHT_STICK_KEYS[i]);
+				auto str = glfwGetKeyName(r_btn_key_codes_[i], current_config->RIGHT_STICK_KEYS[i]);
 				if (str)
 					r_btn_text_[i] = std::string(str);
 				else
-					r_btn_text_[i] = std::to_string(Config::Current()->RIGHT_STICK_KEYS[i]);
+					r_btn_text_[i] = std::to_string(current_config->RIGHT_STICK_KEYS[i]);
 				any_r_btn_chaniging_ = false;
 			}
 		}
@@ -307,15 +335,15 @@ void MainView::Show()
 		switch (i)
 		{
 		case 0:
-			scancode = Config::Current()->LEFT_MOUSE_KEY;
+			scancode = current_config->LEFT_MOUSE_KEY;
 			btn = "Left Mouse";
 			break;
 		case 1:
-			scancode = Config::Current()->RIGHT_MOUSE_KEY;
+			scancode = current_config->RIGHT_MOUSE_KEY;
 			btn = "Right Mouse";
 			break;
 		case 2:
-			scancode = Config::Current()->MIDDLE_MOUSE_KEY;
+			scancode = current_config->MIDDLE_MOUSE_KEY;
 			btn = "Middle Mouse";
 			break;
 		}
@@ -376,6 +404,8 @@ void MainView::OnKeyPress(int key, int scancode, int mods)
 	if (selected_keys_[key] || scancodes_to_glfw_.find(scancode) == scancodes_to_glfw_.cend())
 		return;
 
+	auto current_config = Config::Current();
+	
 	for (int i = 0; i < 4; i++)
 	{
 		if (r_btn_changing_[i])
@@ -392,7 +422,7 @@ void MainView::OnKeyPress(int key, int scancode, int mods)
 			r_btn_key_codes_[i] = key;
 			selected_keys_[key] = true;
 
-			Config::Current()->RIGHT_STICK_KEYS[i] = scancode;
+			current_config->RIGHT_STICK_KEYS[i] = scancode;
 			return;
 		}
 	}
@@ -416,13 +446,13 @@ void MainView::OnKeyPress(int key, int scancode, int mods)
 			switch (i)
 			{
 			case 0:
-				Config::Current()->LEFT_MOUSE_KEY = scancode;
+				current_config->LEFT_MOUSE_KEY = scancode;
 				return;
 			case 1:
-				Config::Current()->RIGHT_MOUSE_KEY = scancode;
+				current_config->RIGHT_MOUSE_KEY = scancode;
 				return;
 			case 2:
-				Config::Current()->MIDDLE_MOUSE_KEY = scancode;
+				current_config->MIDDLE_MOUSE_KEY = scancode;
 				return;
 			}
 		}
@@ -431,8 +461,10 @@ void MainView::OnKeyPress(int key, int scancode, int mods)
 
 void MainView::GetToggleKeys()
 {
-	auto current_modifier = Config::Current()->TOGGLE_MODIFIER;
-	auto current_key = Config::Current()->TOGGLE_KEY;
+	auto current_config = Config::Current();
+
+	auto current_modifier = current_config->TOGGLE_MODIFIER;
+	auto current_key = current_config->TOGGLE_KEY;
 	for (int i = 0; i < (int)glfw_modifiers.size(); i++)
 	{
 		if (glfw_modifiers[i] == current_modifier)
@@ -453,13 +485,15 @@ void MainView::GetToggleKeys()
 
 void MainView::GetRightStickButtons()
 {
+	auto current_config = Config::Current();
+
 	for (auto& it : scancodes_to_glfw_)
 	{
 		uint32_t scan_code = it.first;
 		int key = it.second;
 		for (auto i = 0; i < 4; i++)
 		{
-			if (Config::Current()->RIGHT_STICK_KEYS[i] == scan_code)
+			if (current_config->RIGHT_STICK_KEYS[i] == scan_code)
 			{
 				auto str = glfwGetKeyName(key, scan_code);
 				r_btn_key_codes_[i] = key;
@@ -475,19 +509,21 @@ void MainView::GetRightStickButtons()
 
 void MainView::GetMouseButtons()
 {
+	auto current_config = Config::Current();
+
 	for (int i = 0; i < 3; i++)
 	{
 		int scancode = 0;
 		switch (i)
 		{
 		case 0:
-			scancode = Config::Current()->LEFT_MOUSE_KEY;
+			scancode = current_config->LEFT_MOUSE_KEY;
 			break;
 		case 1:
-			scancode = Config::Current()->RIGHT_MOUSE_KEY;
+			scancode = current_config->RIGHT_MOUSE_KEY;
 			break;
 		case 2:
-			scancode = Config::Current()->MIDDLE_MOUSE_KEY;
+			scancode = current_config->MIDDLE_MOUSE_KEY;
 			break;
 		}
 
@@ -509,60 +545,37 @@ void MainView::GetMouseButtons()
 
 void MainView::SaveConfig()
 {
-	INI::File ft;
-	ft.Load(INI_FILE);
-
-	ft.SetValue("Sensitivity", Config::Current()->SENSITIVITY);
-	ft.SetValue("CameraUpdateTime", Config::Current()->CAMERA_UPDATE_TIME);
-
-	ft.SetValue("HideMouse", Config::Current()->HIDE_MOUSE);
-	ft.SetValue("AutoFocusRyujinx", Config::Current()->AUTO_FOCUS_RYU);
-	ft.SetValue("BindMouseButton", Config::Current()->BIND_MOUSE_BUTTON);
+	auto current_config = Config::Current();
 
 	for (int i = 0; i < 4; i++)
 	{
-		std::string key = "RightStick:" + std::to_string(i);
-		ft.SetValue(key, r_btn_key_codes_[i]);
+		current_config->RIGHT_STICK_KEYS[i] = r_btn_key_codes_[i];
 	}
 
-	ft.SetValue("Mouse:LeftButton", mouse_btn_key_codes_[0]);
-	ft.SetValue("Mouse:RightButton", mouse_btn_key_codes_[1]);
-	ft.SetValue("Mouse:MiddleButton", mouse_btn_key_codes_[2]);
+	current_config->LEFT_MOUSE_KEY = mouse_btn_key_codes_[0];
+	current_config->RIGHT_MOUSE_KEY = mouse_btn_key_codes_[1];
+	current_config->MIDDLE_MOUSE_KEY = mouse_btn_key_codes_[2];
 
-	ft.SetValue("PanningToggle:Modifier", scancodes_to_glfw_[glfw_modifiers[modifier_selected]]);
-	ft.SetValue("PanningToggle:Key", scancodes_to_glfw_[glfw_keys[key_selected]]);
+	current_config->TOGGLE_MODIFIER = scancodes_to_glfw_[glfw_modifiers[modifier_selected]];
+	current_config->TOGGLE_KEY = scancodes_to_glfw_[glfw_keys[key_selected]];
 
-	ft.Save(INI_FILE);
+	current_config->Save(INI_FILE);
 }
 
 void MainView::ReadConfig()
 {
-	INI::File ft;
-	if (!ft.Load(INI_FILE))
+	auto new_conf = Config::LoadNew(INI_FILE);
+	if (!new_conf)
 		return;
-
-	auto new_conf = Config::New();
-
-	new_conf->SENSITIVITY = static_cast<float>(ft.GetValue("Sensitivity", Config::Current()->SENSITIVITY).AsDouble());
-	new_conf->CAMERA_UPDATE_TIME = static_cast<float>(ft.GetValue("CameraUpdateTime", Config::Current()->CAMERA_UPDATE_TIME).AsDouble());
-
-	new_conf->HIDE_MOUSE = ft.GetValue("HideMouse", Config::Current()->HIDE_MOUSE).AsBool();
-	new_conf->AUTO_FOCUS_RYU = ft.GetValue("AutoFocusRyujinx", Config::Current()->AUTO_FOCUS_RYU).AsBool();
-	new_conf->BIND_MOUSE_BUTTON = ft.GetValue("BindMouseButton", Config::Current()->BIND_MOUSE_BUTTON).AsBool();
 
 	for (int i = 0; i < 4; i++)
 	{
-		std::string key = "RightStick:" + std::to_string(i);
-		new_conf->RIGHT_STICK_KEYS[i] = ft.GetValue(key, r_btn_key_codes_[i]).AsInt();
 		r_btn_key_codes_[i] = new_conf->RIGHT_STICK_KEYS[i];
 	}
 
-	new_conf->LEFT_MOUSE_KEY = mouse_btn_key_codes_[0] = ft.GetValue("Mouse:LeftButton", mouse_btn_key_codes_[0]).AsInt();
-	new_conf->RIGHT_MOUSE_KEY = mouse_btn_key_codes_[1] = ft.GetValue("Mouse:RightButton", mouse_btn_key_codes_[1]).AsInt();
-	new_conf->MIDDLE_MOUSE_KEY = mouse_btn_key_codes_[2] = ft.GetValue("Mouse:MiddleButton", mouse_btn_key_codes_[2]).AsInt();
-
-	new_conf->TOGGLE_MODIFIER = ft.GetValue("PanningToggle:Modifier", scancodes_to_glfw_[glfw_modifiers[modifier_selected]]).AsInt();
-	new_conf->TOGGLE_KEY = ft.GetValue("PanningToggle:Key", scancodes_to_glfw_[glfw_keys[key_selected]]).AsInt();
+	mouse_btn_key_codes_[0] = new_conf->LEFT_MOUSE_KEY;
+	mouse_btn_key_codes_[1] = new_conf->RIGHT_MOUSE_KEY;
+	mouse_btn_key_codes_[2] = new_conf->MIDDLE_MOUSE_KEY;
 
 	Application::GetInstance()->Reconfig(new_conf);
 }

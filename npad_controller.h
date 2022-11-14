@@ -34,9 +34,7 @@ public:
 	void ClearState();
 
 private:
-
 	void UpdateThread(std::stop_token stop_token);
-	void OnChange();
 	void SanatizeAxes(float raw_x, float raw_y, bool clamp_value);
 
 	std::vector<InputHandler*> input_handlers_;

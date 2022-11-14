@@ -112,7 +112,6 @@ public:
 
 		timeout_queue_.Push({ button, time });
 		timeout_queue_.Push({ opposite_button, 0.f });
-
 	}
 
 	void OnStop() override
@@ -140,7 +139,6 @@ public:
 	{
 		if (stopped_)
 		{
-			std::lock_guard<std::mutex> lock{ mutex };
 			for (auto& it : pressed_buttons_)
 			{
 				if (it.second)
@@ -148,6 +146,7 @@ public:
 					Native::GetInstance()->SendKeysUp((uint32_t*)&it.first, 1);
 				}
 			}
+			std::lock_guard<std::mutex> lock{ mutex };
 			pressed_buttons_.clear();
 			stopped_ = false;
 		}
@@ -155,7 +154,6 @@ public:
 
 	void OnChange(int index, const InputStatus& status) override
 	{
-		std::lock_guard<std::mutex> lock{ mutex };
 		if (stopped_)
 			return;
 
@@ -167,6 +165,7 @@ public:
 		{
 			Native::GetInstance()->SendKeysDown((uint32_t*)&index, 1);
 		}
+		std::lock_guard<std::mutex> lock{ mutex };
 		pressed_buttons_[index] = status.reset;
 	}
 
@@ -214,43 +213,39 @@ void NpadController::SetStick(float raw_x, float raw_y)
 #endif
 		last_raw_x_ = raw_x;
 		last_raw_y_ = raw_y;
-		OnChange();
+		
+		const auto camera_update = Config::Current()->CAMERA_UPDATE_TIME;
+		SanatizeAxes(last_raw_x_, last_raw_y_, true);
+
+		auto last_x = axes_.x, last_y = axes_.y;
+
+		axes_.x = static_cast<int>(last_x_ * camera_update);
+		axes_.y = static_cast<int>(last_y_ * camera_update);
+
+		InputStatus x_status{ axes_.x == 0, (axes_.x == 0 ? last_x : axes_.x) };
+		InputStatus y_status{ axes_.y == 0, (axes_.y == 0 ? last_y : axes_.y) };
+
+		input_handlers_[StickInputHandlerIndex]->OnChange(x_axis, x_status);
+		input_handlers_[StickInputHandlerIndex]->OnChange(y_axis, y_status);
+
+		axes_.right = last_x_ > threshold;
+		axes_.left = last_x_ < -threshold;
+		axes_.up = last_y_ > threshold;
+		axes_.down = last_y_ < -threshold;
+
+#if _DEBUG
+		if (axes_.x != 0 || axes_.y != 0)
+		{
+			fprintf(stdout, "axes_change: %d, %d - actual_value: %f, %f\n", axes_.x, axes_.y, last_x_, last_y_);
+			fprintf(stdout, "right: %d left: %d up: %d down: %d\n", axes_.right, axes_.left, axes_.up, axes_.down);
+		}
+#endif
 	}
 }
 
 void NpadController::SetButton(int button, int value)
 {
 	input_handlers_[ButtonInputHandlerIndex]->OnChange(button, { value == 0, 0 });
-}
-
-void NpadController::OnChange()
-{
-	const auto camera_update = Config::Current()->CAMERA_UPDATE_TIME;
-	SanatizeAxes(last_raw_x_, last_raw_y_, true);
-
-	auto last_x = axes_.x, last_y = axes_.y;
-
-	axes_.x = static_cast<int>(last_x_ * camera_update);
-	axes_.y = static_cast<int>(last_y_ * camera_update);
-
-	InputStatus x_status{ axes_.x == 0, (axes_.x == 0 ? last_x : axes_.x) };
-	InputStatus y_status{ axes_.y == 0, (axes_.y == 0 ? last_y : axes_.y) };
-
-	input_handlers_[StickInputHandlerIndex]->OnChange(x_axis, x_status);
-	input_handlers_[StickInputHandlerIndex]->OnChange(y_axis, y_status);
-
-	axes_.right = last_x_ > threshold;
-	axes_.left = last_x_ < -threshold;
-	axes_.up = last_y_ > threshold;
-	axes_.down = last_y_ < -threshold;
-
-#if _DEBUG
-	if (axes_.x != 0 || axes_.y != 0)
-	{
-		fprintf(stdout, "axes_change: %d, %d - actual_value: %f, %f\n", axes_.x, axes_.y, last_x_, last_y_);
-		fprintf(stdout, "right: %d left: %d up: %d down: %d\n", axes_.right, axes_.left, axes_.up, axes_.down);
-	}
-#endif
 }
 
 void NpadController::ClearState()

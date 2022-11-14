@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 class Config
 {
@@ -7,11 +8,15 @@ public:
 	static Config* New();
 	static Config* Default();
 	static Config* Current(Config* change = nullptr);
+	static Config* LoadNew(const std::string& file);
+
+	void Save(const std::string& file);
 
 	const char* NAME = "RMB";
-	const char* TARGET_NAME = "Ryujinx";
 	const uint32_t WIDTH = 420;
-	const uint32_t HEIGHT = 500;
+	const uint32_t HEIGHT = 540;
+
+	std::string TARGET_NAME = "Ryujinx";
 
 	uint32_t TOGGLE_MODIFIER;
 	uint32_t TOGGLE_KEY;
@@ -25,7 +30,7 @@ public:
 	float SENSITIVITY;
 
 	bool HIDE_MOUSE;
-	bool AUTO_FOCUS_RYU;
+	bool AUTO_FOCUS_EMU_WINDOW;
 	bool BIND_MOUSE_BUTTON;
 
 private:
