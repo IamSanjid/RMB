@@ -5,8 +5,8 @@
 
 struct Axes
 {
-	int x;
-	int y;
+	float x;
+	float y;
 
 	bool left;
 	bool right;
@@ -14,9 +14,19 @@ struct Axes
 	bool down;
 };
 
+struct StickStatus
+{
+	float x;
+	float y;
+};
+
 struct InputStatus
 {
 	bool reset;
+
+	int button;
+	StickStatus stick_status;
+
 	int value;
 };
 

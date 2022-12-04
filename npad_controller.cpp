@@ -1,6 +1,7 @@
 #include "npad_controller.h"
 #include <stdint.h>
 #include <cmath>
+#include <deque>
 
 #include "native.h"
 #include "Config.h"
@@ -11,10 +12,10 @@
 constexpr int BUTTONS = 4;
 
 /* TODO: make these configurable */
-const float deadzone = 0.09f;
-const float range = 1.0f;
-const float threshold = 0.5f;
-const float offset = 0.0f;
+//const float deadzone = 0.09f;
+//const float range = 1.0f;
+//const float threshold = 0.5f;
+//const float offset = 0.0f;
 
 constexpr int x_axis = 0;
 constexpr int y_axis = 1;
@@ -27,7 +28,7 @@ class InputHandler
 {
 public:
 	virtual void OnUpdate() = 0;
-	virtual void OnChange(int index, const InputStatus& status) = 0;
+	virtual void OnChange(const InputStatus& status) = 0;
 	virtual void OnStop() = 0;
 };
 
@@ -88,10 +89,6 @@ public:
 					{
 						Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[timeout.button], 1);
 					}
-					else if (timeouts_[timeout.button] <= 0.0f)
-					{
-						Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[timeout.button], 1);
-					}
 					timeouts_[timeout.button] = timeout.time;
 				}
 			}
@@ -101,17 +98,48 @@ public:
 		last_update_ += end_wasted_time - start_wasted_time;
 	}
 
-	void OnChange(int index, const InputStatus& status) override
+	static void KeysDown(uint32_t* keys, size_t cnt)
+	{
+		Native::GetInstance()->SendKeysDown(keys, cnt);
+	}
+
+	static void KeysUp(uint32_t* keys, size_t cnt)
+	{
+		Native::GetInstance()->SendKeysUp(keys, cnt);
+	}
+
+	void OnChange(const InputStatus& status) override
 	{
 		if (stopped_)
 			return;
 
-		int button = (index * 2) + (Utils::sign(status.value) == 1);
-		int opposite_button = (index * 2) + (Utils::sign(status.value) != 1);
-		float time = status.reset ? 0.0f : std::abs(status.value);
+		void* SendKeysArr[2] = {
+			&KeysUp,
+			&KeysDown
+		};
 
-		timeout_queue_.Push({ button, time });
-		timeout_queue_.Push({ opposite_button, 0.f });
+
+		for (int index = 0; index < 2; index++)
+		{
+			float value = status.stick_status.x;
+			int not_reset = ((status.value & (index + 1)) >> index) ^ 1;
+			float time = (float)not_reset;
+
+			if (index == 1)
+			{
+				value = status.stick_status.y;
+			}
+
+			time *= std::abs(value);
+
+			int button = (index * 2) + (Utils::sign(value) == 1);
+			int opposite_button = (index * 2) + (Utils::sign(value) != 1);
+
+			((void(*)(uint32_t*, size_t))(SendKeysArr[not_reset]))(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+
+			timeout_queue_.Push({ button, time });
+			timeout_queue_.Push({ opposite_button, 0.f });
+		}
 	}
 
 	void OnStop() override
@@ -152,21 +180,21 @@ public:
 		}
 	}
 
-	void OnChange(int index, const InputStatus& status) override
+	void OnChange(const InputStatus& status) override
 	{
 		if (stopped_)
 			return;
 
 		if (status.reset)
 		{
-			Native::GetInstance()->SendKeysUp((uint32_t*)&index, 1);
+			Native::GetInstance()->SendKeysUp((uint32_t*)&status.button, 1);
 		}
 		else
 		{
-			Native::GetInstance()->SendKeysDown((uint32_t*)&index, 1);
+			Native::GetInstance()->SendKeysDown((uint32_t*)&status.button, 1);
 		}
 		std::lock_guard<std::mutex> lock{ mutex };
-		pressed_buttons_[index] = status.reset;
+		pressed_buttons_[status.button] = !status.reset;
 	}
 
 	void OnStop() override
@@ -211,32 +239,69 @@ void NpadController::SetStick(float raw_x, float raw_y)
 #if _DEBUG
 		fprintf(stdout, "new change: %f, %f\n", raw_x, raw_y);
 #endif
+		auto current_config = Config::Current();
 		last_raw_x_ = raw_x;
 		last_raw_y_ = raw_y;
 		
-		const auto camera_update = Config::Current()->CAMERA_UPDATE_TIME;
+		const auto camera_update = current_config->CAMERA_UPDATE_TIME;
 		SanatizeAxes(last_raw_x_, last_raw_y_, true);
 
 		auto last_x = axes_.x, last_y = axes_.y;
 
-		axes_.x = static_cast<int>(last_x_ * camera_update);
-		axes_.y = static_cast<int>(last_y_ * camera_update);
+		auto new_x = last_x_ * camera_update;
+		auto new_y = last_y_ * camera_update;
 
-		InputStatus x_status{ axes_.x == 0, (axes_.x == 0 ? last_x : axes_.x) };
-		InputStatus y_status{ axes_.y == 0, (axes_.y == 0 ? last_y : axes_.y) };
+		if (current_config->SPECIAL_ROUNDING)
+		{
+			const float x_abs = std::abs(new_x);
+			const float y_abs = std::abs(new_y);
+			const float sum = x_abs + y_abs;
 
-		input_handlers_[StickInputHandlerIndex]->OnChange(x_axis, x_status);
-		input_handlers_[StickInputHandlerIndex]->OnChange(y_axis, y_status);
+			if (sum > 0.f) 
+			{
+				const float difference_x = x_abs / sum;
+				const float difference_y = y_abs / sum;
 
-		axes_.right = last_x_ > threshold;
-		axes_.left = last_x_ < -threshold;
-		axes_.up = last_y_ > threshold;
-		axes_.down = last_y_ < -threshold;
+				if (std::abs(difference_x - difference_y) >= current_config->DEADZONE)
+				{
+					if (difference_x > difference_y)
+					{
+						new_y = std::round(new_y);
+					}
+					else
+					{
+						new_x = std::round(new_x);
+					}
+				}
+			}
+		}
+		else
+		{
+			new_x = std::round(new_x);
+			new_y = std::round(new_y);
+		}
+
+		bool reset_x = static_cast<int>(new_x) == 0;
+		bool reset_y = static_cast<int>(new_y) == 0;
+
+		InputStatus status{ reset_x || reset_y, 0, 
+			{ reset_x ? last_x : new_x, reset_y ? last_y : new_y }, 
+			(int)reset_x | (int)reset_y << 1 };
+
+		input_handlers_[StickInputHandlerIndex]->OnChange(status);
+
+		axes_.x = new_x;
+		axes_.y = new_y;
+
+		axes_.right = last_x_ > current_config->THRESHOLD;
+		axes_.left = last_x_ < -current_config->THRESHOLD;
+		axes_.up = last_y_ > current_config->THRESHOLD;
+		axes_.down = last_y_ < -current_config->THRESHOLD;
 
 #if _DEBUG
 		if (axes_.x != 0 || axes_.y != 0)
 		{
-			fprintf(stdout, "axes_change: %d, %d - actual_value: %f, %f\n", axes_.x, axes_.y, last_x_, last_y_);
+			fprintf(stdout, "axes_change: %f, %f - actual_value: %f, %f\n", axes_.x, axes_.y, last_x_, last_y_);
 			fprintf(stdout, "right: %d left: %d up: %d down: %d\n", axes_.right, axes_.left, axes_.up, axes_.down);
 		}
 #endif
@@ -245,7 +310,7 @@ void NpadController::SetStick(float raw_x, float raw_y)
 
 void NpadController::SetButton(int button, int value)
 {
-	input_handlers_[ButtonInputHandlerIndex]->OnChange(button, { value == 0, 0 });
+	input_handlers_[ButtonInputHandlerIndex]->OnChange({ value == 0, button });
 }
 
 void NpadController::ClearState()
@@ -261,6 +326,7 @@ void NpadController::ClearState()
 
 void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value)
 {
+	auto current_config = Config::Current();
 	float& x = last_x_;
 	float& y = last_y_;
 
@@ -269,30 +335,30 @@ void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value)
 	if (!std::isnormal(raw_y))
 		raw_y = 0;
 
-	raw_x += offset;
-	raw_y += offset;
+	raw_x += current_config->X_OFFSET;
+	raw_y += current_config->Y_OFFSET;
 
-	if (std::abs(offset) < 0.5f)
+	if (std::abs(current_config->X_OFFSET) < 0.5f)
 	{
 		if (raw_x > 0)
 		{
-			raw_x /= 1 + offset;
+			raw_x /= 1 + current_config->X_OFFSET;
 		}
 		else
 		{
-			raw_x /= 1 - offset;
+			raw_x /= 1 - current_config->X_OFFSET;
 		}
 	}
 
-	if (std::abs(offset) < 0.5f)
+	if (std::abs(current_config->Y_OFFSET) < 0.5f)
 	{
 		if (raw_y > 0)
 		{
-			raw_y /= 1 + offset;
+			raw_y /= 1 + current_config->Y_OFFSET;
 		}
 		else
 		{
-			raw_y /= 1 - offset;
+			raw_y /= 1 - current_config->Y_OFFSET;
 		}
 	}
 
@@ -302,7 +368,7 @@ void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value)
 	float r = x * x + y * y;
 	r = std::sqrt(r);
 
-	if (r <= deadzone || deadzone >= 1.0f)
+	if (r <= current_config->DEADZONE || current_config->DEADZONE >= 1.0f)
 	{
 		x = 0;
 		y = 0;
@@ -310,10 +376,10 @@ void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value)
 	}
 
 	const float deadzone_factor =
-		1.0f / r * (r - deadzone) / (1.0f - deadzone);
-	x = x * deadzone_factor / range;
-	y = y * deadzone_factor / range;
-	r = r * deadzone_factor / range;
+		1.0f / r * (r - current_config->DEADZONE) / (1.0f - current_config->DEADZONE);
+	x = x * deadzone_factor / current_config->RANGE;
+	y = y * deadzone_factor / current_config->RANGE;
+	r = r * deadzone_factor / current_config->RANGE;
 
 	if (clamp_value && r > 1.0f)
 	{

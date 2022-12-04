@@ -34,29 +34,13 @@ void Mouse::MouseMoved(int x, int y, int center_x, int center_y)
 	auto time = angle * (angle_update_time / 90.0);*/
 	/* copied from yuzu: https://github.com/yuzu-emu/yuzu/blob/bf3c6f88126d0167329c4a18759cdabc7584f8b3/src/input_common/drivers/mouse.cpp#L74 */
 
-	/*if (move_distance < 3.0f)
+	if (move_distance < 3.0f)
 	{
 		mouse_change /= move_distance;
 		mouse_change *= 3.0f;
-	}*/
-
-	int x_dir = Utils::sign(mouse_change.x);
-	int y_dir = Utils::sign(mouse_change.y);
-
-	bool x_dir_changed = Utils::sign(last_mouse_change_.x) != x_dir;
-	bool y_dir_changed = Utils::sign(last_mouse_change_.y) != y_dir;
-
-	last_mouse_change_ = (last_mouse_change_ * 0.71f) + (mouse_change * 0.29f);
-
-	if (x_dir != 0 && x_dir_changed)
-	{
-		last_mouse_change_.x = mouse_change.x / mouse_change.mag();
 	}
 
-	if (y_dir != 0 && y_dir_changed)
-	{
-		last_mouse_change_.y = mouse_change.y / mouse_change.mag();
-	}
+	last_mouse_change_ = (last_mouse_change_ * 0.31f) + (mouse_change * 0.69f);
 
 	const auto last_move_distance = last_mouse_change_.mag();
 

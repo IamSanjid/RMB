@@ -205,7 +205,6 @@ void Application::Run()
 void Application::Update()
 {
 	Native::GetInstance()->Update();
-	EventBus::Instance().update();
 	DetectMouseMove();
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(1));

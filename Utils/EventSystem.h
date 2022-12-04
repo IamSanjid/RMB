@@ -79,42 +79,28 @@ public:
 	EventBus(EventBus const&) = delete;
 	void operator=(EventBus const&) = delete;
 
-	void update()
-	{
-		while (!published_events.empty())
-		{
-			auto& published_event = published_events.front();
-			HandlerList* handlers = subscribers[published_event.id];
-
-			if (handlers != nullptr)
-			{
-				for (auto& handler : *handlers)
-				{
-					handler->exec(published_event.evt);
-				}
-			}
-
-			published_events.pop();
-		}
-	}
-
 	template<typename EventType>
 	void publish(EventType* evnt)
 	{
 		HandlerList* handlers = subscribers[typeid(EventType)];
 
-		if (handlers == nullptr) {
+		if (handlers == nullptr) 
+		{
 			return;
 		}
 
-		published_events.push(PublishedEvent{ typeid(EventType), evnt });
+		for (auto& handler : *handlers)
+		{
+			handler->exec(evnt);
+		}
 	}
 
 	template<class EventType>
 	void subscribe(void (*function)(EventType*))
 	{
 		HandlerList* handlers = subscribers[typeid(EventType)];
-		if (handlers == nullptr) {
+		if (handlers == nullptr) 
+		{
 			handlers = new HandlerList();
 			subscribers[typeid(EventType)] = handlers;
 		}
@@ -126,59 +112,14 @@ public:
 	void subscribe(T* instance, void (T::* memberFunction)(EventType*))
 	{
 		HandlerList* handlers = subscribers[typeid(EventType)];
-		if (handlers == nullptr) {
+		if (handlers == nullptr) 
+		{
 			handlers = new HandlerList();
 			subscribers[typeid(EventType)] = handlers;
 		}
 
 		handlers->push_back(new MemberFunctionHandler<T, EventType>(instance, memberFunction));
 	}
-
-	template<class EventType>
-	void unsubscribe(void (*function)(EventType*))
-	{
-		HandlerList* handlers = subscribers[typeid(EventType)];
-		if (handlers == nullptr) return;
-
-		for (auto hIt = handlers->begin(); hIt != handlers->end(); ++hIt)
-		{
-			if (static_cast<FunctionHandler<EventType>*>(*hIt)->compare(function))
-			{
-				handlers->erase(hIt);
-				return;
-			}
-		}
-	}
-
-	template<class T, class EventType>
-	void unsubscribe(T* instance, void (T::* memberFunction)(EventType*))
-	{
-		HandlerList* handlers = subscribers[typeid(EventType)];
-		if (handlers == nullptr) return;
-
-		for (auto hIt = handlers->begin(); hIt != handlers->end(); ++hIt)
-		{
-			if (static_cast<MemberFunctionHandler<T, EventType>*>(*hIt)->compare(instance, memberFunction))
-			{
-				handlers->erase(hIt);
-				return;
-			}
-		}
-	}
-
-	template<class EventType>
-	void unsubscribe_all()
-	{
-		HandlerList* handlers = subscribers[typeid(EventType)];
-		if (handlers == nullptr) return;
-		handlers->clear();
-	}
 private:
-	struct PublishedEvent
-	{
-		std::type_index id;
-		Event* evt;
-	};
 	std::unordered_map<std::type_index, HandlerList*> subscribers;
-	std::queue<PublishedEvent> published_events;
 };
