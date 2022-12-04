@@ -181,9 +181,12 @@ void MainView::Show()
 	ImGui::Checkbox("Bind Mouse Buttons", &current_config->BIND_MOUSE_BUTTON);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Enable binding mouse buttons to keyboard keys.");
+	ImGui::Checkbox("Special Rounding", &current_config->SPECIAL_ROUNDING);
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Does some special rounding for the axis changes\nmight improve the user experience for low fps games.");
 
 	ImGui::Text("Sensitivity(%%):");
-	if (ImGui::InputFloat(" ", &current_config->SENSITIVITY, 0.5f, 0.0f, "%0.3f"))
+	if (ImGui::InputFloat("##sensitivity", &current_config->SENSITIVITY, 0.5f, 3.5f, "%0.3f"))
 	{
 		if (current_config->SENSITIVITY < 1.f)
 			current_config->SENSITIVITY = 1.f;
@@ -195,7 +198,7 @@ void MainView::Show()
 		ImGui::SetTooltip("Camera sensitivity. The higher the faster the camera\nview will be changed.");
 
 	ImGui::Text("Camera Update Time:");
-	if (ImGui::InputFloat("  ", &current_config->CAMERA_UPDATE_TIME, 1.0f, 5.0f, "%0.3f"))
+	if (ImGui::InputFloat("##camera_update", &current_config->CAMERA_UPDATE_TIME, 1.0f, 5.0f, "%0.3f"))
 	{
 		if (current_config->CAMERA_UPDATE_TIME < 10.f)
 			current_config->CAMERA_UPDATE_TIME = 10.f;
@@ -209,8 +212,8 @@ void MainView::Show()
 
 	/* configure input keys */
 	auto window_size = ImGui::GetWindowSize();
-	float width = window_size.x * 0.5f;
-	float height = window_size.y * 0.345f;
+	float width = window_size.x * 0.47f;
+	float height = window_size.y * 0.335f;
 	float delta_width = width * 0.5f;
 
 	ImGui::Button("Configure Input");
@@ -230,6 +233,10 @@ void MainView::Show()
 
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Resets to default configuration.");
+
+	ImGui::SameLine(0.f, 26.55f);
+
+	ImGui::Button("Analog Properties");
 
 	ImGui::BeginChild("conf_input", ImVec2(width, height), true, ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -375,13 +382,74 @@ void MainView::Show()
 			}
 		}
 
-		hover_text = "The following button will be pressed if " + btn + "\nbutton is clicked.";
+		hover_text = "The following key will be pressed if " + btn + "\nbutton is clicked.";
 
 		if (ImGui::IsItemHovered())
 		{
 			ImGui::SetTooltip(hover_text.c_str());
 		}
 	}
+
+	ImGui::EndChild();
+
+	ImGui::SameLine();
+
+	ImGui::BeginChild("analog_prop", ImVec2(width, height), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+	ImGui::Text("Deadzone:");
+	if (ImGui::InputFloat("##deadzone", &current_config->DEADZONE, 0.05f, 0.2f, "%0.4f"))
+	{
+		if (current_config->DEADZONE < 0.f)
+			current_config->DEADZONE = 0.f;
+		else if (current_config->DEADZONE > 1.f)
+			current_config->DEADZONE = 1.f;
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Deadzone for X and Y axis.");
+
+	ImGui::Text("Range:");
+	if (ImGui::InputFloat("##range", &current_config->RANGE, 0.05f, 0.2f, "%0.4f"))
+	{
+		if (current_config->RANGE < 0.25f)
+			current_config->RANGE = 0.25f;
+		else if (current_config->RANGE > 1.50f)
+			current_config->RANGE = 1.50f;
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Range for X and Y axis.");
+
+	/*ImGui::Text("Threshold:");
+	if (ImGui::InputFloat("##threshold", &current_config->THRESHOLD, 0.1f, 1.f, "%0.4f"))
+	{
+		if (current_config->DEADZONE < 0.25f)
+			current_config->DEADZONE = 0.25f;
+		else if (current_config->DEADZONE > 1.50f)
+			current_config->DEADZONE = 1.50f;
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Threshold for X and Y axis.");*/
+
+	ImGui::Text("X Offset:");
+	if (ImGui::InputFloat("##x_offset", &current_config->X_OFFSET, 0.05f, 0.2f, "%0.4f"))
+	{
+		if (current_config->X_OFFSET < -1.f)
+			current_config->X_OFFSET = -1.f;
+		else if (current_config->X_OFFSET > 1.f)
+			current_config->X_OFFSET = 1.f;
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Offset for X axis.");
+
+	ImGui::Text("Y Offset:");
+	if (ImGui::InputFloat("##y_offset", &current_config->Y_OFFSET, 0.05f, 0.2f, "%0.4f"))
+	{
+		if (current_config->Y_OFFSET < -1.f)
+			current_config->Y_OFFSET = -1.f;
+		else if (current_config->Y_OFFSET > 1.f)
+			current_config->Y_OFFSET = 1.f;
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Offset for Y axis.");
 
 	ImGui::EndChild();
 #if _DEBUG
@@ -400,6 +468,22 @@ void MainView::OnKeyPress(int key, int scancode, int mods)
 	(void)mods;
 	if (scancode <= 0)
 		return;
+
+	if (key == GLFW_KEY_ESCAPE) 
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			r_btn_changing_[i] = false;
+			if (i < 3) 
+			{
+				mouse_btn_changing_[i] = false;
+			}
+		}
+		any_mouse_btn_changing_ = false;
+		GetRightStickButtons();
+		GetMouseButtons();
+		return;
+	}
 
 	if (selected_keys_[key] || scancodes_to_glfw_.find(scancode) == scancodes_to_glfw_.cend())
 		return;
@@ -425,11 +509,8 @@ void MainView::OnKeyPress(int key, int scancode, int mods)
 			current_config->RIGHT_STICK_KEYS[i] = scancode;
 			return;
 		}
-	}
 
-	for (int i = 0; i < 3; i++)
-	{
-		if (mouse_btn_changing_[i])
+		if (i < 3 && mouse_btn_changing_[i])
 		{
 			mouse_btn_changing_[i] = false;
 			any_mouse_btn_changing_ = false;

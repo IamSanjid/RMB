@@ -50,9 +50,9 @@ public:
 		Linked* current_reading = reading;
 		while (current_reading && current_reading->value)
 		{
-			ret_vals.push_back(*current_reading->value);
+			ret_vals.push_back(std::move(*current_reading->value));
 
-			delete current_reading->value;
+			// delete current_reading->value;
 			current_reading->value = nullptr;
 
 			Linked* next_reading = current_reading->next;

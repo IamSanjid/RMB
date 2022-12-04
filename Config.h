@@ -14,7 +14,7 @@ public:
 
 	const char* NAME = "RMB";
 	const uint32_t WIDTH = 420;
-	const uint32_t HEIGHT = 540;
+	const uint32_t HEIGHT = 558;
 
 	std::string TARGET_NAME = "Ryujinx";
 
@@ -32,6 +32,13 @@ public:
 	bool HIDE_MOUSE;
 	bool AUTO_FOCUS_EMU_WINDOW;
 	bool BIND_MOUSE_BUTTON;
+	bool SPECIAL_ROUNDING;
+
+	float DEADZONE = 0.15f;
+	float RANGE = 0.95f;
+	float THRESHOLD = 0.5f;
+	float X_OFFSET = 0.0f;
+	float Y_OFFSET = 0.0f;
 
 private:
 	Config();
