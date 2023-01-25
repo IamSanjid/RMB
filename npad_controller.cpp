@@ -98,26 +98,10 @@ public:
 		last_update_ += end_wasted_time - start_wasted_time;
 	}
 
-	static void KeysDown(uint32_t* keys, size_t cnt)
-	{
-		Native::GetInstance()->SendKeysDown(keys, cnt);
-	}
-
-	static void KeysUp(uint32_t* keys, size_t cnt)
-	{
-		Native::GetInstance()->SendKeysUp(keys, cnt);
-	}
-
 	void OnChange(const InputStatus& status) override
 	{
 		if (stopped_)
 			return;
-
-		void* SendKeysArr[2] = {
-			&KeysUp,
-			&KeysDown
-		};
-
 
 		for (int index = 0; index < 2; index++)
 		{
@@ -135,7 +119,14 @@ public:
 			int button = (index * 2) + (Utils::sign(value) == 1);
 			int opposite_button = (index * 2) + (Utils::sign(value) != 1);
 
-			((void(*)(uint32_t*, size_t))(SendKeysArr[not_reset]))(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+			if (!not_reset) /* branch misses? */
+			{
+                Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+            }
+            else
+			{
+                Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+			}
 
 			timeout_queue_.Push({ button, time });
 			timeout_queue_.Push({ opposite_button, 0.f });
