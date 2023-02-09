@@ -61,22 +61,19 @@ public:
 			return;
 		}
 
-		if (time_passed != last_update_)
+		for (int i = 0; i < BUTTONS; i++)
 		{
-			for (int i = 0; i < BUTTONS; i++)
+            if (timeouts_[i] > 0.0f)
 			{
-				if (timeouts_[i] > 0.0f)
+                timeouts_[i] -= time_passed;
+                if (timeouts_[i] <= 0.001f)
 				{
-					timeouts_[i] -= time_passed;
-					if (timeouts_[i] <= 0.001f)
-					{
-						Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[i], 1);
-						timeouts_[i] = 0.0f;
-						continue;
-					}
-				}
-			}
-		}
+                    Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[i], 1);
+                    timeouts_[i] = 0.0f;
+                    continue;
+                }
+            }
+        }
 		
 		std::vector<ButtonTimeout> current_timeouts;
 		if (timeout_queue_.Pop(current_timeouts))
@@ -119,15 +116,31 @@ public:
 			int button = (index * 2) + (Utils::sign(value) == 1);
 			int opposite_button = (index * 2) + (Utils::sign(value) != 1);
 
-			if (!not_reset) /* branch misses? */
+			// unnecessary stuff just wanted to test pre-calculated label addresses
+
+#if defined(__clang__) || defined(__GNUC__)
+			constexpr void* keys_gotos[] = {&&UP, &&DOWN};
+
+			goto *keys_gotos[not_reset];
+		UP:
+            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+            goto ADD;
+		DOWN:
+            Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
+            goto ADD;
+			
+
+		ADD:
+#else
+            if (!not_reset)
 			{
                 Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
-            }
+			}
             else
 			{
                 Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
-			}
-
+            }
+#endif
 			timeout_queue_.Push({ button, time });
 			timeout_queue_.Push({ opposite_button, 0.f });
 		}
