@@ -7,7 +7,7 @@
 #include "Config.h"
 #include "Utils.h"
 #include "Application.h"
-#include "linked_queue.h"
+#include "concurrentqueue.h"
 
 constexpr int BUTTONS = 4;
 
@@ -42,7 +42,6 @@ public:
 
 		last_update_ = current_time;
 
-		float start_wasted_time = static_cast<float>(Application::GetTotalRunningTime());
 		if (stopped_)
 		{
 			for (int i = 0; i < BUTTONS; i++)
@@ -53,11 +52,12 @@ public:
 				}
 				timeouts_[i] = 0.0f;
 			}
-			timeout_queue_.Clear();
+            ButtonTimeout _timeout{0};
+            while (timeout_queue_.try_dequeue(_timeout)) {}
 			stopped_ = false;
 
 			float end_wasted_time = static_cast<float>(Application::GetTotalRunningTime());
-			last_update_ += end_wasted_time - start_wasted_time;
+            last_update_ += end_wasted_time - current_time;
 			return;
 		}
 
@@ -75,24 +75,28 @@ public:
             }
         }
 		
-		std::vector<ButtonTimeout> current_timeouts;
-		if (timeout_queue_.Pop(current_timeouts))
+		constexpr int max_timeouts_to_dequeue = BUTTONS * 2;
+        size_t timeouts_cnt = 0;
+        do 
 		{
-			for (auto& timeout : current_timeouts)
+            ButtonTimeout timeouts[max_timeouts_to_dequeue];
+            timeouts_cnt = timeout_queue_.try_dequeue_bulk(timeouts, max_timeouts_to_dequeue);
+            for (size_t i = 0; i < timeouts_cnt; i++)
 			{
-				if (timeouts_[timeout.button] != timeout.time)
+                auto& timeout = timeouts[i];
+                if (timeouts_[timeout.button] != timeout.time) 
 				{
-					if (timeout.time <= 0.0f)
+                    if (timeout.time <= 0.0f)
 					{
-						Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[timeout.button], 1);
-					}
-					timeouts_[timeout.button] = timeout.time;
-				}
-			}
-		}
+                        Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[timeout.button], 1);
+                    }
+                    timeouts_[timeout.button] = timeout.time;
+                }
+            }
+        } while (timeouts_cnt != 0);
 
 		float end_wasted_time = static_cast<float>(Application::GetTotalRunningTime());
-		last_update_ += end_wasted_time - start_wasted_time;
+        last_update_ += end_wasted_time - current_time;
 	}
 
 	void OnChange(const InputStatus& status) override
@@ -141,8 +145,12 @@ public:
                 Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
             }
 #endif
-			timeout_queue_.Push({ button, time });
-			timeout_queue_.Push({ opposite_button, 0.f });
+            ButtonTimeout timeouts[2] = 
+			{
+				{ button, time }, 
+				{ opposite_button, 0.f }
+			};
+			timeout_queue_.enqueue_bulk(timeouts, 2);
 		}
 	}
 
@@ -161,7 +169,7 @@ private:
 	float timeouts_[BUTTONS]{};
 	float last_update_{};
 	bool stopped_{};
-	LinkedQueue<ButtonTimeout> timeout_queue_{};
+    moodycamel::ConcurrentQueue<ButtonTimeout> timeout_queue_{};
 };
 
 class ButtonInputHandler final : public InputHandler
@@ -288,9 +296,15 @@ void NpadController::SetStick(float raw_x, float raw_y)
 		bool reset_x = static_cast<int>(new_x) == 0;
 		bool reset_y = static_cast<int>(new_y) == 0;
 
-		InputStatus status{ reset_x || reset_y, 0, 
-			{ reset_x ? last_x : new_x, reset_y ? last_y : new_y }, 
-			(int)reset_x | (int)reset_y << 1 };
+		new_x += reset_x * last_x;
+        new_y += reset_y * last_y;
+
+		InputStatus status
+		{ 
+			reset_x || reset_y, 0, 
+			{ new_x, new_y }, 
+			(int)reset_x | (int)reset_y << 1 
+		};
 
 		input_handlers_[StickInputHandlerIndex]->OnChange(status);
 

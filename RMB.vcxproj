@@ -187,8 +187,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="concurrentqueue.h" />
     <ClInclude Include="Config.h" />
-    <ClInclude Include="linked_queue.h" />
     <ClInclude Include="npad_controller.h" />
     <ClInclude Include="glfw\include\GLFW\glfw3.h" />
     <ClInclude Include="glfw\include\GLFW\glfw3native.h" />

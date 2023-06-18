@@ -32,6 +32,9 @@
 #include <thread>
 #include <stdio.h>
 
+static int screen_center_x_ = 0;
+static int screen_center_y_ = 0;
+
 std::unique_ptr<Application> Application::Create()
 {
 	auto app = std::make_unique<Application>();
@@ -242,8 +245,14 @@ void Application::TogglePanning()
 {
 	if (!panning_started_)
 	{
-		if (Config::Current()->AUTO_FOCUS_EMU_WINDOW && !Native::GetInstance()->SetFocusOnWindow(Config::Current()->TARGET_NAME))
-			return;
+        if (Config::Current()->AUTO_FOCUS_EMU_WINDOW) 
+		{
+            Native::GetInstance()->SetFocusOnWindow(Config::Current()->TARGET_NAME);
+		}
+        
+		const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        screen_center_x_ = videoMode->width / 2, screen_center_y_ = videoMode->height / 2;
+
 		panning_started_ = true;
 		glfwIconifyWindow(main_window_);
 	}
@@ -317,13 +326,10 @@ void Application::OnMouseButton(MouseButtonEvent* evt)
 
 void Application::OnMouseMove(int x, int y)
 {
-	if (panning_started_ && Native::GetInstance()->IsMainWindowActive(Config::Current()->TARGET_NAME))
+	if (panning_started_)
 	{
-		const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		int center_x = videoMode->width / 2, center_y = videoMode->height / 2;
-
-		mouse_->MouseMoved(x, y, center_x, center_y);
-		Native::GetInstance()->SetMousePos(center_x, center_y);
+		mouse_->MouseMoved(x, y, screen_center_x_, screen_center_y_);
+        Native::GetInstance()->SetMousePos(screen_center_x_, screen_center_y_);
 	}
 	else
 	{

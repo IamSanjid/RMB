@@ -177,7 +177,7 @@ void MainView::Show()
 		ImGui::SetTooltip("Hides the normal mouse cursor on inactivity.");
 	ImGui::Checkbox("Auto Focus Emulator Window", &current_config->AUTO_FOCUS_EMU_WINDOW);
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Tries to focus the Emulator Window after enabling mouse panning.");
+		ImGui::SetTooltip("Tries to focus the Target Emulator Window after enabling\nmouse panning.");
 	ImGui::Checkbox("Bind Mouse Buttons", &current_config->BIND_MOUSE_BUTTON);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Enable binding mouse buttons to keyboard keys.");

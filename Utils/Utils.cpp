@@ -1,4 +1,6 @@
 #include "Utils.h"
+#include <string.h>
+#include <algorithm>
 
 std::string Utils::to_lower(std::string str)
 {

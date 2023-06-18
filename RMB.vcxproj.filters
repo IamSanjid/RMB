@@ -97,7 +97,7 @@
     <ClInclude Include="Utils\iniparser.hpp">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="linked_queue.h">
+    <ClInclude Include="concurrentqueue.h">
       <Filter>Utils</Filter>
     </ClInclude>
   </ItemGroup>
