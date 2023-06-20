@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <string>
 
 struct GLFWwindow;
 struct HotkeyEvent;
@@ -11,47 +11,51 @@ class Mouse;
 class NpadController;
 class Config;
 
-class Application
-{
+class Application {
 public:
-	Application();
+    Application();
 
-	Application(const Application&) = delete;
-	Application& operator=(const Application&) = delete;
+    Application(const Application&) = delete;
+    Application& operator=(const Application&) = delete;
 
-	~Application();
+    ~Application();
 
-	static std::unique_ptr<Application> Create();
+    static std::unique_ptr<Application> Create();
 
-	static Application* GetInstance();
-	static double GetTotalRunningTime();
-	static NpadController* GetController();
+    static Application* GetInstance();
+    static double GetTotalRunningTime();
 
-	bool Initialize(const char* name, uint32_t width, uint32_t height);
+    bool Initialize(const char* name, uint32_t width, uint32_t height);
 
-	void Run();
-	void Reconfig(Config* new_conf = nullptr);
-	void TogglePanning();
+    void Run();
+    void Reconfig(Config* new_conf = nullptr);
+    void TogglePanning();
 
-	bool IsPanning() const { return panning_started_; }
+    bool IsPanning() const {
+        return panning_started_;
+    }
+
+    NpadController* GetController() const {
+        return controller_;
+    }
 
 private:
-	void Update();
-	void DetectMouseMove();
-	void OnHotkey(HotkeyEvent* evt);
-	void OnMouseButton(MouseButtonEvent* evt);
-	void OnMouseMove(int x, int y);
-	void UpdateMouseVisibility(double new_moved_time = 0.0);
+    void Update();
+    void DetectMouseMove();
+    void OnHotkey(HotkeyEvent* evt);
+    void OnMouseButton(MouseButtonEvent* evt);
+    void OnMouseMove(int x, int y);
+    void UpdateMouseVisibility(double new_moved_time = 0.0);
 
-	static void OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-	static Application* instance_;
+    static Application* instance_;
 
-	GLFWwindow* main_window_ = nullptr;
-	MainView* main_view_ = nullptr;
-	Mouse* mouse_;
-	NpadController* controller_;
+    GLFWwindow* main_window_ = nullptr;
+    MainView* main_view_ = nullptr;
+    Mouse* mouse_ = nullptr;
+    NpadController* controller_ = nullptr;
 
-	bool is_running_ = false;
-	bool panning_started_ = false;
+    bool is_running_ = false;
+    bool panning_started_ = false;
 };
