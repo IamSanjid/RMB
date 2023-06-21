@@ -49,8 +49,8 @@ Application* Application::GetInstance() {
 }
 
 double Application::GetTotalRunningTime() {
-    typedef std::chrono::high_resolution_clock Time;
-    typedef std::chrono::duration<double, std::milli> fmsec;
+    using Time = std::chrono::high_resolution_clock;
+    using fmsec = std::chrono::duration<double, std::milli>;
 
     static auto starting_time = Time::now().time_since_epoch();
 
@@ -238,6 +238,8 @@ void Application::TogglePanning() {
 
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         screen_center_x_ = videoMode->width / 2, screen_center_y_ = videoMode->height / 2;
+
+        Native::GetInstance()->SetMousePos(screen_center_x_, screen_center_y_);
 
         panning_started_ = true;
         glfwIconifyWindow(main_window_);

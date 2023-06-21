@@ -164,21 +164,37 @@ bool WinNative::SetFocusOnWindow(const std::string& window_name) {
         const char* sub_str;
         HWND found_process;
     };
+
     auto EnumWindowsProc = [](HWND hwnd, LPARAM lParam) {
+        auto ownerHwnd = GetWindow(hwnd, GW_OWNER);
+        if (!ownerHwnd) {
+            ownerHwnd = hwnd;
+        }
+
+        if (!IsWindowVisible(ownerHwnd)) {
+            return TRUE;
+        }
         auto finder = (process_finder*)lParam;
 
         DWORD id;
-        GetWindowThreadProcessId(hwnd, &id);
+        GetWindowThreadProcessId(ownerHwnd, &id);
+        if (!id) {
+            return TRUE;
+        }
 
-        char path[MAX_PATH];
+        char path[MAX_PATH]{0};
         DWORD size = MAX_PATH;
+        
         HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, id);
+        if (!hProc) {
+            return TRUE;
+        }
         QueryFullProcessImageNameA(hProc, 0, path, &size);
+        
         CloseHandle(hProc);
 
-        if (size && strstr(path, finder->sub_str) != NULL && GetWindow(hwnd, GW_OWNER) == (HWND)0 &&
-            IsWindowVisible(hwnd)) {
-            finder->found_process = hwnd;
+        if (size && strstr(path, finder->sub_str) != NULL) {
+            finder->found_process = ownerHwnd;
             return FALSE;
         }
         return TRUE;

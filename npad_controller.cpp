@@ -85,10 +85,7 @@ public:
         auto button_y = (1 * 2) + (Utils::sign(value_y) > 0);
         auto opposite_button_y = 5 - button_y;
 
-        ButtonTimeout timeouts[BUTTONS]{{button_y, new_time_y},
-                                        {opposite_button_y, 0},
-                                        {button_x, new_time_x},
-                                        {opposite_button_x, 0}};
+        ButtonTimeout timeouts[BUTTONS]{};
 
         bool prioritize_y = new_time_y > new_time_x;
         timeouts[(prioritize_y * 2)] = {button_x, new_time_x};
@@ -97,55 +94,6 @@ public:
         timeouts[((prioritize_y ^ 1) * 2) + 1] = {opposite_button_y, 0};
 
         timeout_queue_.enqueue_bulk(timeouts, BUTTONS);
-        /*for (int index = 0; index < 2; index++)
-        {
-            float value = status.x;
-            int not_reset = ((status.value & (index + 1)) >> index) ^ 1;
-            float time = (float)not_reset;
-
-            if (index == 1)
-            {
-                value = status.y;
-            }
-
-            time *= std::abs(value);
-
-            int button = (index * 2) + (Utils::sign(value) == 1);
-            int opposite_button = (index * 2) + (Utils::sign(value) != 1);
-
-            // unnecessary stuff just wanted to test pre-calculated label addresses
-
-#if defined(__clang__) || defined(__GNUC__)
-            constexpr void* keys_gotos[] = {&&UP, &&DOWN};
-
-            goto *keys_gotos[not_reset];
-        UP:
-            Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
-            goto ADD;
-        DOWN:
-            Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
-            goto ADD;
-
-
-        ADD:
-#else
-            if (!not_reset)
-            {
-                Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[button], 1);
-            }
-            else
-            {
-                Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[button],
-1);
-            }
-#endif
-            ButtonTimeout timeouts[2] =
-            {
-                { button, time },
-                { opposite_button, 0.f }
-            };
-            timeout_queue_.enqueue_bulk(timeouts, 2);
-        }*/
     }
 
     void OnStop() {
@@ -236,40 +184,8 @@ void NpadController::SetStick(float raw_x, float raw_y) {
 
     SanatizeAxes(last_raw_x_, last_raw_y_, true);
 
-    // auto last_x = axes_.x, last_y = axes_.y;
-
-    auto new_x = std::roundf(last_x_ * 272.0f) /** camera_update*/;
-    auto new_y = std::roundf(last_y_ * 272.0f) /** camera_update*/;
-
-    /*if (current_config->SPECIAL_ROUNDING) {
-        const float x_abs = std::abs(new_x);
-        const float y_abs = std::abs(new_y);
-        const float sum = x_abs + y_abs;
-
-        if (sum > 0.f) {
-            const float difference_x = x_abs / sum;
-            const float difference_y = y_abs / sum;
-
-            if (std::abs(difference_x - difference_y) >= current_config->DEADZONE) {
-                if (difference_x > difference_y) {
-                    new_y = std::round(new_y);
-                }
-                else {
-                    new_x = std::round(new_x);
-                }
-            }
-        }
-    }
-    else {
-        new_x = std::round(new_x);
-        new_y = std::round(new_y);
-    }*/
-
-    // bool reset_x = static_cast<int>(new_x) == 0;
-    // bool reset_y = static_cast<int>(new_y) == 0;
-
-    // new_x += reset_x * last_x;
-    // new_y += reset_y * last_y;
+    auto new_x = std::roundf(last_x_ * INT16_MAX);
+    auto new_y = std::roundf(last_y_ * INT16_MAX);
 
     stick_handler_->OnChange({static_cast<int16_t>(new_x), static_cast<int16_t>(new_y)});
 

@@ -46,7 +46,7 @@ private:
 
     static LinuxNative* instance_;
 
-    typedef void (*EnumWindowProc)(Window window, void* userDefinedPtr);
+    using EnumWindowProc = void (*)(Window window, void* userDefinedPtr);
 
     /* most of these codes are copy pasted from https://github.com/jordansissel/xdotool */
 
