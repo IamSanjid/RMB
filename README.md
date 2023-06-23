@@ -14,13 +14,13 @@ It simulates keypress of your keyboard according to the mouse position change.<b
 **_What does it mean by simulate key press?_**<br/>
 If you've bound the right-stick(Or the stick which changes the camera) inputs with your keyboard eg. the default Ryujinx input configuration binds the right-stick inputs like this:<br/>
 ![image](https://i.ibb.co/CbptV6w/image.png)<br/>
-then after enabling mouse panning<br/>
-it will send **_I_** keypress to Ryujinx if you move your mouse **UP** ↑ or<br/>
-**_K_** if you move **DOWN** ↓ and so on.<br/>
-If you've changed these keys in Ryujinx make sure you also change those in RMB's configuration.<br/>
+then after enabling mouse panning.<br/>
+* If you move your mouse **UP** (↑) it will send **_I_** keypress to Ryujinx.<br/>
+* If you move **DOWN** (↓) it will send **_K_** and so on.<br/>
+* If you've changed these keys in Ryujinx make sure you also change those in RMB's configuration.<br/>
 ![conf_pic](https://user-images.githubusercontent.com/38256064/163551837-57ecccab-69f2-428b-94c6-ea32d1166d2f.png)<br/>
 
-You can change the **_Sensitivity_** and for some games you might need to change **_Camera Update Time_**. For PLA it felt 65-60 was okay and for Super Mario Odessy 80 felt better for me, you can play with it to find the perfect value.<br/>
+You can change the **_Sensitivity_** according to your need.<br/>
 
 Now you can bind your mouse buttons with any keyboard key. Example if you want to press the **ZR** key and bound that key with **O** in Ryujinx (the dafualt configuration).<br/>
 ![ryu_zr_zl](https://user-images.githubusercontent.com/38256064/163552661-93081905-d60b-4480-834f-4ea4b3173c20.png)<br/>
@@ -57,10 +57,10 @@ This is a simple learning project so, things might get broken. Since it simulate
 2. Then you need to implement how to simulate the key presses on the corresponding OS, for windows `SendInput` was enough. For X11 wm `XTestFakeKeyEvent` API was used.
 3. You now need to implement how to get the cursor position, for Windows `GetCursorPos` and for X11 wm `XQueryPointer` API(s) was used.
 4. After that you need to implement how to set your cursor position, for Windows `SetCursorPos` API was used, same effect can be done by using `SendInput`. For X11 wm `XWarpPointer` did the job.
-5. Detect if Ryujinx is active/focused or not. On windows `GetForegroundWindow` and on X11 wm `XGetWindowProperty` API(s) was used, check [here](https://github.com/IamSanjid/RMB/blob/main/linux/linux_native.cpp#L344).
+5. Detect if Ryujinx is active/focused or not. On windows `GetForegroundWindow` and on X11 wm `XGetWindowProperty` API(s) was used, check [here](https://github.com/IamSanjid/RMB/blob/main/linux/linux_native.cpp#L513).
 6. (Optional) If you want to hide your cursor during panning mode you need to actually change the cursor image file your system currently using, for Windows `SetSystemCursor` API is used. For X11 wm simple `XFixesHideCursor`/`XFixesShowCursor` API(s) did the job.
 7. (Optional) If you want to automatically focus Ryujinx after entering panning mode then again you need to use some native API(s), for windows `SetForegroundWindow` API was used and for X11 wm `XSendEvent` was able to help. On both platforms you have to check all the visible windows and you can either check their class name/title name to select your target processs and send Focus/Active action.
-8. (Optional) If you want to add the mouse button to keyboard binder feature, you going to need to listen to global mouse button press/release events, on windows this was achieved via `SetWindowHookEx` and `LowLevelMouseProc` Win32 API, on X11 wm had to use `XRecord` API(s) you can check `XRecordHandler` from [here](https://github.com/IamSanjid/RMB/blob/main/linux/linux_native.cpp#L30). Then it uses the 2nd feature to send the keyboard key press.
+8. (Optional) If you want to add the mouse button to keyboard binder feature, you going to need to listen to global mouse button press/release events, on windows this was achieved via `SetWindowHookEx` and `LowLevelMouseProc` Win32 API, on X11 wm had to use `XRecord` API(s) you can check `XRecordHandler` from [here](https://github.com/IamSanjid/RMB/blob/main/linux/linux_native.cpp#L26). Then it uses the 2nd feature to send the keyboard key press.
 
 Check `native.h` a simple interface that was used as a bridge to call these native API(s).<br/>
 Use this as a base class for your specific OS implementation.
@@ -71,7 +71,13 @@ Again this is a learning project, if anyone wants to help me improve this I woul
 You can download binaries for Windows and Linux from [releases](https://github.com/IamSanjid/RMB/releases/).
 
 # Demo
-![new_conf](https://user-images.githubusercontent.com/38256064/163598458-bc4b659f-a49e-463f-b50a-d02fb9744043.png)
+![image](https://github.com/IamSanjid/RMB/assets/38256064/7d7d3e81-3ac6-4b83-9fc2-5da722dd5e70)<br/>
+
+*Videos shows demo with an older version but the main usage remains the same.*
+The differences you can notice is:
+* No longer need to set the `Camera Update Time`.
+* You can specify the emulator target window by providing the name. It means you can also use it on other emulators like **CEMU** just need to configure it correctly.
+* You can set more settings regarding mouse panning, such as X and Y offset, range, deadzone etc.
 
 https://user-images.githubusercontent.com/38256064/163562362-4d90e742-52d8-4d20-8f3d-3dc3005962a8.mp4
 
