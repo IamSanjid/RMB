@@ -141,7 +141,7 @@ void WinNative::GetMousePos(int* x_ret, int* y_ret) {
     }
 }
 
-NativeWindow WinNative::GetFocusedWindow() const {
+NativeWindow WinNative::GetFocusedWindow() {
     HWND active_window = ::GetForegroundWindow();
     return static_cast<NativeWindow>(active_window);
 }

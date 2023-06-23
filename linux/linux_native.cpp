@@ -307,6 +307,38 @@ static int IgnoreBadWindow(Display* dpy, XErrorEvent* xerr) {
     return xerr->error_code;
 }
 
+NativeWindow LinuxNative::GetFocusedWindow() {
+    if (!EWMHIsSupported("_NET_ACTIVE_WINDOW")) {
+        return 0;
+    }
+    auto old_error_handler = XSetErrorHandler(IgnoreBadWindow);
+
+    Window active_window = 0;
+
+    long nitems;
+    auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", False);
+    auto root = XDefaultRootWindow(display_);
+    auto data = GetWindowPropertyByAtom(root, request, &nitems, NULL, NULL);
+    if (nitems > 0) {
+        active_window = *(Window*)data;
+
+        XWindowAttributes attr;
+        XGetWindowAttributes(display_, active_window, &attr);
+
+        if (attr.map_state != IsViewable) {
+            active_window = 0;
+        }
+        free(data);
+    }
+    XSetErrorHandler(old_error_handler);
+    return active_window;
+}
+
+bool LinuxNative::SetFocusOnWindow(const NativeWindow native_window) {
+    Window window = static_cast<Window>(native_window);
+    return ActivateWindow(window);
+}
+
 bool LinuxNative::IsMainWindowActive(const std::string& window_name) {
     static auto atom_window_type_id = XInternAtom(display_, "_NET_WM_WINDOW_TYPE", True);
     static auto atom_target_type = XInternAtom(display_, "_NET_WM_WINDOW_TYPE_NORMAL", True);

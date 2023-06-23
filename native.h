@@ -55,7 +55,7 @@ public:
     virtual void SendKeysUp(uint32_t* keys, size_t count) = 0;
     virtual void SetMousePos(int x, int y) = 0;
     virtual void GetMousePos(int* x_ret, int* y_ret) = 0;
-    virtual NativeWindow GetFocusedWindow() const = 0;
+    virtual NativeWindow GetFocusedWindow() = 0;
     virtual bool SetFocusOnWindow(const NativeWindow window) = 0;
     /* performs task on any window if it's name has substr of the specified name */
     virtual bool IsMainWindowActive(const std::string& window_name) = 0;
