@@ -15,7 +15,9 @@
 #endif
 
 #include <GLFW/glfw3.h>
+#ifdef _MSC_VER
 #pragma comment(lib, "glfw/lib-vc2019-64/glfw3.lib")
+#endif
 
 #include "Config.h"
 #include "mouse.h"
