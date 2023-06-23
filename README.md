@@ -26,7 +26,8 @@ Now you can bind your mouse buttons with any keyboard key. Example if you want t
 ![ryu_zr_zl](https://user-images.githubusercontent.com/38256064/163552661-93081905-d60b-4480-834f-4ea4b3173c20.png)<br/>
 Then you can bind right mouse button or left mouse button with **O** or **Q** or whatever key is mapped to the desired controller button in Ryujinx.<br/>
 ![mbinds](https://user-images.githubusercontent.com/38256064/163568717-ed7145a2-643b-4002-8e4e-d3e75f0d260a.png)<br/>
-**BTW, make sure 'Bind Mouse Buttons' is ticked.**
+* **BTW, make sure 'Bind Mouse Buttons' is ticked.**
+* **If you don't want to apply the mouse binding feature at the moment but still want to keep your binding settings just untick 'Bind Mouse Buttons' for the moment.**
 
 # Disclaimer
 This is a simple learning project so, things might get broken. Since it simulates key presses according to the mouse position, you might feel the camera movement is a bit choppy and weird/wrong. And since this simulates keypresses, you should close(recommended) or hide/minimize other applications.<br/><br/>
