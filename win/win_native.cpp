@@ -4,6 +4,8 @@
 #include <chrono>
 #include <thread>
 
+constexpr uint32_t delay_in_between_window_focus = 1;
+
 std::shared_ptr<Native> Native::GetInstance() {
     static std::shared_ptr<Native> singleton_(new WinNative());
     return singleton_;
@@ -139,6 +141,30 @@ void WinNative::GetMousePos(int* x_ret, int* y_ret) {
     }
 }
 
+NativeWindow WinNative::GetFocusedWindow() const {
+    HWND active_window = ::GetForegroundWindow();
+    return static_cast<NativeWindow>(active_window);
+}
+
+bool WinNative::SetFocusOnWindow(const NativeWindow native_window) {
+    HWND window = static_cast<HWND>(native_window);
+    INPUT keyInput{};
+    keyInput.type = INPUT_KEYBOARD;
+    keyInput.ki.wVk = VK_MENU;
+    keyInput.ki.dwFlags = 0;
+    keyInput.ki.wScan = (WORD)MapVirtualKey(keyInput.ki.wVk, 0);
+    SendInput(1, &keyInput, sizeof(INPUT));
+
+    SetForegroundWindow(window);
+    SetFocus(window);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay_in_between_window_focus));
+    keyInput.ki.wVk = VK_MENU;
+    keyInput.ki.dwFlags = KEYEVENTF_KEYUP;
+    SendInput(1, &keyInput, sizeof(INPUT));
+    return true;
+}
+
 bool WinNative::IsMainWindowActive(const std::string& window_name) {
     HWND active_window = ::GetForegroundWindow();
     if (!active_window)
@@ -202,21 +228,7 @@ bool WinNative::SetFocusOnWindow(const std::string& window_name) {
     process_finder finder = {window_name.c_str(), NULL};
     EnumWindows(EnumWindowsProc, (LPARAM)&finder);
     if (finder.found_process) {
-        INPUT keyInput{};
-        keyInput.type = INPUT_KEYBOARD;
-        keyInput.ki.wVk = VK_MENU;
-        keyInput.ki.dwFlags = 0;
-        keyInput.ki.wScan = (WORD)MapVirtualKey(keyInput.ki.wVk, 0);
-        SendInput(1, &keyInput, sizeof(INPUT));
-
-        SetForegroundWindow(finder.found_process);
-        SetFocus(finder.found_process);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        keyInput.ki.wVk = VK_MENU;
-        keyInput.ki.dwFlags = KEYEVENTF_KEYUP;
-        SendInput(1, &keyInput, sizeof(INPUT));
-        return true;
+        return SetFocusOnWindow(static_cast<NativeWindow>(finder.found_process));
     }
     return false;
 }

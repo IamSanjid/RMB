@@ -1,4 +1,13 @@
 #pragma once
+
+#ifdef _MSC_VER
+#if _WIN32 || _WIN64
+#if !defined(_WIN64)
+#error Only 64bit is supported.
+#endif
+#endif
+#endif
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -24,6 +33,12 @@ const uint32_t MOUSE_LBUTTON = 0x1;
 const uint32_t MOUSE_RBUTTON = 0x2;
 const uint32_t MOUSE_MBUTTON = 0x3;
 
+#ifdef _MSC_VER
+using NativeWindow = void*;
+#else
+using NativeWindow = unsigned long;
+#endif
+
 class Native {
 public:
     Native(){};
@@ -40,6 +55,8 @@ public:
     virtual void SendKeysUp(uint32_t* keys, size_t count) = 0;
     virtual void SetMousePos(int x, int y) = 0;
     virtual void GetMousePos(int* x_ret, int* y_ret) = 0;
+    virtual NativeWindow GetFocusedWindow() const = 0;
+    virtual bool SetFocusOnWindow(const NativeWindow window) = 0;
     /* performs task on any window if it's name has substr of the specified name */
     virtual bool IsMainWindowActive(const std::string& window_name) = 0;
     /* optional */

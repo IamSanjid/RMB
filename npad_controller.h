@@ -22,7 +22,7 @@ public:
     NpadController();
 
     void SetStick(float raw_x, float raw_y);
-    void SetButton(int button, int value);
+    void SetButton(uint32_t button, int value);
     void ClearState();
 
 private:

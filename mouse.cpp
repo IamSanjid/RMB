@@ -89,7 +89,7 @@ void Mouse::UpdateThread(std::stop_token stop_token) {
 
     while (!stop_token.stop_requested()) {
         if (Application::GetInstance()->IsPanning()) {
-            last_mouse_change_ *= 0.96f;
+            last_mouse_change_ *= 0.76f;
 
             const float sensitivity = Config::Current()->SENSITIVITY * 0.0044f;
             Application::GetInstance()->GetController()->SetStick(
@@ -97,7 +97,7 @@ void Mouse::UpdateThread(std::stop_token stop_token) {
                                                    last_mouse_change_.y * sensitivity);
         }
 
-        if (mouse_panning_timeout_++ > 10) {
+        if (mouse_panning_timeout_++ > 15) {
             StopPanning();
         }
 

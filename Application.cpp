@@ -15,19 +15,13 @@
 #endif
 
 #include <GLFW/glfw3.h>
-
-#if _WIN32 || _WIN64
-#if _WIN64
 #pragma comment(lib, "glfw/lib-vc2019-64/glfw3.lib")
-#else
-#error Only 64bit is supported.
-#endif
-#endif
 
 #include "Config.h"
 #include "mouse.h"
 #include "npad_controller.h"
 #include "views/MainView.h"
+#include "Utils.h"
 
 #include <thread>
 #include <stdio.h>
@@ -270,8 +264,8 @@ void Application::DetectMouseMove() {
 }
 
 void Application::OnHotkey(HotkeyEvent* evt) {
+    DEBUG_OUT("hot_key: (%d, %d)\n", evt->key_, evt->modifier_);
 #if _DEBUG
-    fprintf(stdout, "hot_key: (%d, %d)\n", evt->key_, evt->modifier_);
     if ((int)evt->key_ == glfwGetKeyScancode(GLFW_KEY_T) &&
         (int)evt->modifier_ == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL)) {
         mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
@@ -283,25 +277,27 @@ void Application::OnHotkey(HotkeyEvent* evt) {
 }
 
 void Application::OnMouseButton(MouseButtonEvent* evt) {
-    if (!Config::Current()->BIND_MOUSE_BUTTON ||
-        !Native::GetInstance()->IsMainWindowActive(Config::Current()->TARGET_NAME))
+    DEBUG_OUT("[%f] button: %d, pressed: %d\n", GetTotalRunningTime(), evt->key_,
+              evt->is_pressed_);
+    if (!Config::Current()->BIND_MOUSE_BUTTON) {
         return;
+    }
+
+    uint32_t key = 0;
     switch (evt->key_) {
     case MOUSE_LBUTTON:
-        if (Config::Current()->LEFT_MOUSE_KEY) {
-            controller_->SetButton(Config::Current()->LEFT_MOUSE_KEY, evt->is_pressed_);
-        }
+        key = Config::Current()->LEFT_MOUSE_KEY;
         break;
     case MOUSE_RBUTTON:
-        if (Config::Current()->RIGHT_MOUSE_KEY) {
-            controller_->SetButton(Config::Current()->RIGHT_MOUSE_KEY, evt->is_pressed_);
-        }
+        key = Config::Current()->RIGHT_MOUSE_KEY;
         break;
     case MOUSE_MBUTTON:
-        if (Config::Current()->MIDDLE_MOUSE_KEY) {
-            controller_->SetButton(Config::Current()->MIDDLE_MOUSE_KEY, evt->is_pressed_);
-        }
+        key = Config::Current()->MIDDLE_MOUSE_KEY;
         break;
+    }
+
+    if (key) {
+        controller_->SetButton(key, evt->is_pressed_);
     }
 }
 
