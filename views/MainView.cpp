@@ -34,12 +34,24 @@ MainView::MainView() {
         }
     }
 
+    for (int kp_key = GLFW_KEY_KP_0; kp_key <= GLFW_KEY_KP_EQUAL; kp_key++) {
+        int scan_code = glfwGetKeyScancode(kp_key);
+        if (scan_code) {
+            auto str = glfwGetKeyName(kp_key, scan_code);
+            if (str) {
+                glfw_str_keys.push_back(str);
+                glfw_keys.push_back(scan_code);
+            }
+            scancodes_to_glfw_[scan_code] = kp_key;
+        }
+    }
+
     glfw_str_keys.push_back("SPACE");
     glfw_keys.push_back(glfwGetKeyScancode(GLFW_KEY_SPACE));
 
     for (auto key = GLFW_KEY_COMMA; key <= GLFW_KEY_GRAVE_ACCENT; key++) {
         int scan_code = glfwGetKeyScancode(key);
-        if (scan_code > 0) {
+        if (scan_code) {
             auto str = glfwGetKeyName(key, scan_code);
             if (str) {
                 glfw_str_keys.push_back(str);
