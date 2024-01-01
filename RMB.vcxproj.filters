@@ -1,105 +1,102 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="imgui\imgui_draw.cpp">
+    <ClCompile Include="externals\imgui\imgui_draw.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\imgui_impl_glfw.cpp">
+    <ClCompile Include="externals\imgui\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\imgui_impl_opengl3.cpp">
+    <ClCompile Include="externals\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\imgui_tables.cpp">
+    <ClCompile Include="externals\imgui\imgui.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\imgui_widgets.cpp">
+    <ClCompile Include="externals\imgui\imgui_demo.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\imgui.cpp">
+    <ClCompile Include="externals\imgui\backends\imgui_impl_glfw.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\imgui_demo.cpp">
+    <ClCompile Include="externals\imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="Application.cpp" />
-    <ClCompile Include="Utils\Utils.cpp">
+    <ClCompile Include="src\Utils\Utils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="win\win_native.cpp">
+    <ClCompile Include="src\win\win_native.cpp">
       <Filter>win</Filter>
     </ClCompile>
-    <ClCompile Include="mouse.cpp" />
-    <ClCompile Include="Config.cpp" />
-    <ClCompile Include="views\MainView.cpp">
+    <ClCompile Include="src\views\MainView.cpp">
       <Filter>views</Filter>
     </ClCompile>
-    <ClCompile Include="npad_controller.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\mouse.cpp" />
+    <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\npad_controller.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="imgui\imgui_impl_glfw.h">
+    <ClInclude Include="externals\imgui\imgui_internal.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imgui_impl_opengl3.h">
+    <ClInclude Include="externals\imgui\imstb_rectpack.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imgui_impl_opengl3_loader.h">
+    <ClInclude Include="externals\imgui\imstb_textedit.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imgui_internal.h">
+    <ClInclude Include="externals\imgui\imstb_truetype.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imstb_rectpack.h">
+    <ClInclude Include="externals\imgui\imconfig.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imstb_textedit.h">
+    <ClInclude Include="externals\imgui\imgui.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imstb_truetype.h">
+    <ClInclude Include="externals\imgui\backends\imgui_impl_glfw.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imconfig.h">
+    <ClInclude Include="externals\imgui\backends\imgui_impl_opengl3.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\imgui.h">
+    <ClInclude Include="externals\imgui\backends\imgui_impl_opengl3_loader.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="glfw\include\GLFW\glfw3.h">
+    <ClInclude Include="externals\glfw\include\GLFW\glfw3.h">
       <Filter>glfw</Filter>
     </ClInclude>
-    <ClInclude Include="glfw\include\GLFW\glfw3native.h">
+    <ClInclude Include="externals\glfw\include\GLFW\glfw3native.h">
       <Filter>glfw</Filter>
     </ClInclude>
-    <ClInclude Include="Application.h" />
-    <ClInclude Include="Utils\EventSystem.h">
+    <ClInclude Include="src\Utils\EventSystem.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Utils\Utils.h">
+    <ClInclude Include="src\Utils\Utils.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Utils\vec.h">
+    <ClInclude Include="src\Utils\vec.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="win\win_native.h">
+    <ClInclude Include="src\Utils\iniparser.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\views\View.h">
+      <Filter>views</Filter>
+    </ClInclude>
+    <ClInclude Include="src\views\MainView.h">
+      <Filter>views</Filter>
+    </ClInclude>
+    <ClInclude Include="src\win\win_native.h">
       <Filter>win</Filter>
     </ClInclude>
-    <ClInclude Include="native.h" />
-    <ClInclude Include="mouse.h" />
-    <ClInclude Include="Config.h" />
-    <ClInclude Include="views\View.h">
-      <Filter>views</Filter>
-    </ClInclude>
-    <ClInclude Include="views\MainView.h">
-      <Filter>views</Filter>
-    </ClInclude>
-    <ClInclude Include="npad_controller.h" />
-    <ClInclude Include="Utils\iniparser.hpp">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="concurrentqueue.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
+    <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\native.h" />
+    <ClInclude Include="src\mouse.h" />
+    <ClInclude Include="src\Config.h" />
+    <ClInclude Include="src\npad_controller.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">

@@ -44,13 +44,19 @@ This is a simple learning project so, things might get broken. Since it simulate
 * [ImGui](https://github.com/ocornut/imgui) for simple or more like lazy UI.
 
 # How to Build
-* Windows: 
-  - Visual Studio 2019+ with `Desktop development with C++` components installed should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
+Output directory: `build/RMB/(Debug|Release)/(platform-x64)/RMB.exe`
+
+* Windows:
+  - Visual Studio 2019+ with `Desktop development with C++` components installed and `vc143+` should be able to build this. (Yes, no need to manually link ImGui and GLFW libs).
+    - `cl.exe nob.c && nob` (Make sure `cl.exe` is in your `PATH` environment variable, typicall open `Developer PowerShell for VS {VERSION}` and run the commands)
+        - After running `nob` or the above command you can also directly use Visual Studio to build.
 * Linux:
   - Install libx11, mesa and libxtst libs on your Linux machine.
     - On Debian/Ubuntu based Linux distros run `sudo apt install libx11-dev mesa-common-dev libxtst-dev`.
     - On Arch Linux based Linux distros run `sudo pacman -Syu base-devel libx11 mesa libxtst`.
-  - After installing these libs simply run `make` on the directory.
+  - After installing these libs simply run `cc nob.c -o nob && nob` on the directory.
+* macOS:
+  - Coming soon.
 * For other OSs/Platforms you need to implement all these stuff listed [here](#for-other-platforms). You also going to need GLFW 3.3+ lib for the corresponding platform/os.
 
 # For Other Platforms

@@ -1,0 +1,29 @@
+diff --git "a/LeksysINI/iniparser.hpp" "b/src/Utils/iniparser.hpp"
+index 45bc180..fbf5fb8 100644
+--- "a/LeksysINI/iniparser.hpp"
++++ "b/src/Utils/iniparser.hpp"
+@@ -182,7 +182,7 @@ namespace INI
+ 
+     // Trim string from start
+     static inline std::string &ltrim(std::string &s) {
+-#if (__cplusplus >= 201103L)
++#if (__cplusplus >= 201103L) || (defined (_MSC_VER) && _MSVC_LANG >= 201103L)
+     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) { return !__in_isspace(ch); }));
+ #else
+     s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(__in_isspace))));
+@@ -192,7 +192,7 @@ namespace INI
+ 
+     // Trim string from end
+     static inline std::string &rtrim(std::string &s) {
+-#if (__cplusplus >= 201103L)
++#if (__cplusplus >= 201103L) || (defined (_MSC_VER) && _MSVC_LANG >= 201103L)
+     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !__in_isspace(ch); }).base(), s.end());
+ #else
+     s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(__in_isspace))).base(), s.end());
+@@ -1509,4 +1509,4 @@ static inline std::istream& operator>> (std::istream& stream, INI::File& file)
+ #undef SYSTEM_PATH_DELIM
+ // Note: error definitions are left
+ 
+-#endif
++#endif
+\ No newline at end of file

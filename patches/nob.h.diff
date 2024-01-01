@@ -1,0 +1,17 @@
+diff --git a/./nob.h b/./RMB/.nob/nob.h
+index b44d70e..eaa7545 100644
+--- a/./nob.h
++++ b/./RMB/.nob/nob.h
+@@ -370,7 +370,6 @@ int closedir(DIR *dirp);
+ #endif // _WIN32
+ // minirent.h HEADER END ////////////////////////////////////////
+ 
+-#endif // NOB_H_
+ 
+ #ifdef NOB_IMPLEMENTATION
+ 
+@@ -1155,3 +1154,4 @@ int closedir(DIR *dirp)
+ // minirent.h SOURCE END ////////////////////////////////////////
+ 
+ #endif
++#endif // NOB_H_

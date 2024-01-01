@@ -16,7 +16,11 @@
 
 #include <GLFW/glfw3.h>
 #ifdef _MSC_VER
-#pragma comment(lib, "glfw/lib-vc2019-64/glfw3.lib")
+#if _DEBUG
+#pragma comment(lib, "build/externals/glfw/debug/windows-x64/glfw3.lib")
+#else
+#pragma comment(lib, "build/externals/glfw/release/windows-x64/glfw3.lib")
+#endif
 #endif
 
 #include "Config.h"
