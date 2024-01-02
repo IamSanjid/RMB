@@ -40,7 +40,7 @@ static Nob_File_Paths include_dirs = {0};
 static Nob_File_Paths library_dirs = {0};
 #endif
 static char* c_compiler_exec = "cc";
-#define BUILD_OUT_SUFFIX = ""
+#define BUILD_OUT_SUFFIX ""
 
 #endif
 

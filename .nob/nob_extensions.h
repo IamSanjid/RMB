@@ -252,7 +252,8 @@ bool nob_cmd_run_sync_with_output(Nob_Cmd cmd, Nob_String_Builder* o_sb, EXIT_CO
             if (exit_status != 0) {
                 nob_log(NOB_ERROR, "command exited with exit code %d", exit_status);
             }
-            nob_return_defer(exit_status);
+            result = exit_status;
+            break;
         }
 
         if (WIFSIGNALED(wstatus)) {

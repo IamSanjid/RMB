@@ -407,8 +407,6 @@ int external_glfw_build(const void* this_ptr) {
     };
     default_platform_specific_compile_options(&cmd, &compile_objs_options);
 
-    nob_cmd_append(&cmd, "-D_CRT_SECURE_NO_WARNINGS", "-Gd", "-TC", "/errorReport:prompt", "-W3",
-                   "/external:W3");
     nob_cmd_append(&cmd, nob_temp_sprintf("-I%s/include", proj_dir));
     nob_cmd_append(&cmd, nob_temp_sprintf("-I%s/src", proj_dir));
 #ifdef _WIN32
@@ -417,6 +415,8 @@ int external_glfw_build(const void* this_ptr) {
         "src/win32_time.c",  "src/win32_thread.c",   "src/win32_window.c",
         "src/wgl_context.c", "src/egl_context.c",    "src/osmesa_context.c"};
 
+    nob_cmd_append(&cmd, "-D_CRT_SECURE_NO_WARNINGS", "-Gd", "-TC", "/errorReport:prompt", "-W3",
+                   "/external:W3");
     nob_cmd_append(&cmd, "-D_GLFW_WIN32");
 #else
 #if defined(__APPLE__) || defined(__MACH__)
@@ -603,8 +603,9 @@ int populate_lib_inc_dirs() {
 
     nob_log(NOB_INFO, "Extracting system library and include path from c compiler...");
     nob_cmd_append(&cmd, c_compiler_exec, "-v", "-o", TEMPORARY_NOB_OUT, __FILE__);
-    if (!nob_cmd_run_sync_with_output(cmd, &sb, NULL) || sb.count <= 1)
+    if (!nob_cmd_run_sync_with_output(cmd, &sb, NULL) || sb.count <= 1) {
         nob_return_defer(0);
+    }
     nob_sb_append_null(&sb);
 
     bool searching_for_include_dirs = false;
