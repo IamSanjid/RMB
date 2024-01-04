@@ -99,7 +99,7 @@ void WinNative::SendKeysDown(uint32_t* keys, size_t count) {
     }
     std::vector<INPUT> input(count);
     std::fill(input.begin(), input.end(), INPUT{});
-    
+
     for (auto i = 0u; i < count; i++) {
         auto ch = (WORD)keys[i];
         input[i].type = INPUT_KEYBOARD;
@@ -210,13 +210,13 @@ bool WinNative::SetFocusOnWindow(const std::string& window_name) {
 
         char path[MAX_PATH]{0};
         DWORD size = MAX_PATH;
-        
+
         HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, id);
         if (!hProc) {
             return TRUE;
         }
         QueryFullProcessImageNameA(hProc, 0, path, &size);
-        
+
         CloseHandle(hProc);
 
         if (size && strstr(path, finder->sub_str) != NULL) {
@@ -285,7 +285,7 @@ void WinNative::OnHotkey(uint32_t id) {
     auto found = registered_ids_.find(id);
     if (found != registered_ids_.end()) {
         auto& reg_key = registered_keys_[found->second];
-        EventBus::Instance().publish(new HotkeyEvent(reg_key.key, reg_key.modifier));
+        EventBus::Instance().publish(HotkeyEvent(reg_key.key, reg_key.modifier));
     }
 }
 
@@ -453,22 +453,22 @@ LRESULT WinNative::LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
         int y = mouse_hook->pt.y;
         switch (wParam) {
         case WM_LBUTTONDOWN:
-            EventBus::Instance().publish(new MouseButtonEvent(MOUSE_LBUTTON, true, x, y));
+            EventBus::Instance().publish(MouseButtonEvent(MOUSE_LBUTTON, true, x, y));
             break;
         case WM_LBUTTONUP:
-            EventBus::Instance().publish(new MouseButtonEvent(MOUSE_LBUTTON, false, x, y));
+            EventBus::Instance().publish(MouseButtonEvent(MOUSE_LBUTTON, false, x, y));
             break;
         case WM_RBUTTONDOWN:
-            EventBus::Instance().publish(new MouseButtonEvent(MOUSE_RBUTTON, true, x, y));
+            EventBus::Instance().publish(MouseButtonEvent(MOUSE_RBUTTON, true, x, y));
             break;
         case WM_RBUTTONUP:
-            EventBus::Instance().publish(new MouseButtonEvent(MOUSE_RBUTTON, false, x, y));
+            EventBus::Instance().publish(MouseButtonEvent(MOUSE_RBUTTON, false, x, y));
             break;
         case WM_MBUTTONDOWN:
-            EventBus::Instance().publish(new MouseButtonEvent(MOUSE_MBUTTON, true, x, y));
+            EventBus::Instance().publish(MouseButtonEvent(MOUSE_MBUTTON, true, x, y));
             break;
         case WM_MBUTTONUP:
-            EventBus::Instance().publish(new MouseButtonEvent(MOUSE_MBUTTON, false, x, y));
+            EventBus::Instance().publish(MouseButtonEvent(MOUSE_MBUTTON, false, x, y));
             break;
         }
     }

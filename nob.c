@@ -263,6 +263,7 @@ typedef struct {
     const char* input_flag;
     const char* output_flag;
     size_t max_process_count;
+    bool force_rebuild;
 #ifdef _WIN32
     const char* pdb_file;
     bool multiple_pdb_writer;
@@ -271,6 +272,7 @@ typedef struct {
 
 void default_platform_specific_compile_options(Nob_Cmd* cmd, CompileObjsOptions* options) {
     options->max_process_count = MAX_PROCESS;
+    options->force_rebuild = false;
     options->input_flag = "-c";
     options->output_flag = "-o";
 
@@ -350,7 +352,7 @@ bool compile_obj_files(Nob_Cmd* default_cmd, const CompileObjsOptions* options,
 
             nob_da_append(object_files, output_path);
 
-            if (nob_needs_rebuild(output_path, &input_path, 1)) {
+            if (options->force_rebuild || nob_needs_rebuild(output_path, &input_path, 1)) {
                 nob_cmd_append(default_cmd, options->input_flag, input_path);
 #ifdef _WIN32
                 nob_cmd_append(default_cmd,
@@ -790,6 +792,7 @@ int build_main() {
 #endif
     };
     default_platform_specific_compile_options(&cmd, &compile_objs_options);
+    compile_objs_options.force_rebuild = true;
 #ifdef _WIN32
 
 #define PLATFORM_SPECIFIC_DIR "src/win"

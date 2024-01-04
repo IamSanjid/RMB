@@ -180,7 +180,7 @@ void LinuxNative::Update() {
             if (matched_reg_key_it != registered_keys_.cend()) {
                 const auto& matched_reg_key = matched_reg_key_it->second;
                 EventBus::Instance().publish(
-                    new HotkeyEvent(matched_reg_key.key, matched_reg_key.modifier));
+                    HotkeyEvent(matched_reg_key.key, matched_reg_key.modifier));
             }
             else {
                 hash = HashRegKey(key_data.keycode, AnyModifier);
@@ -188,7 +188,7 @@ void LinuxNative::Update() {
                 if (matched_reg_key_it != registered_keys_.cend()) {
                     const auto& matched_reg_key = matched_reg_key_it->second;
                     EventBus::Instance().publish(
-                        new HotkeyEvent(matched_reg_key.key, matched_reg_key.modifier));
+                        HotkeyEvent(matched_reg_key.key, matched_reg_key.modifier));
                 }
             }
             break;
@@ -760,7 +760,7 @@ void LinuxNative::HookEvent(XPointer closeure, XRecordInterceptData* recorded_da
             }
             int x = data->event.u.keyButtonPointer.rootX;
             int y = data->event.u.keyButtonPointer.rootY;
-            EventBus::Instance().publish(new MouseButtonEvent(button, is_pressed, x, y));
+            EventBus::Instance().publish(MouseButtonEvent(button, is_pressed, x, y));
         }
     }
 END:

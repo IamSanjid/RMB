@@ -42,12 +42,12 @@ public:
 private:
     void Update();
     void DetectMouseMove();
-    void OnHotkey(HotkeyEvent* evt);
-    void OnMouseButton(MouseButtonEvent* evt);
-    void OnMouseMove(int x, int y);
     void UpdateMouseVisibility(double new_moved_time = 0.0);
 
     static void OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void OnHotkey(HotkeyEvent& evt);
+    static void OnMouseButton(MouseButtonEvent& evt);
+    static void OnMouseMove(int x, int y);
 
     static Application* instance_;
 

@@ -1,10 +1,10 @@
 #pragma once
 #include <list>
+#include <memory>
+#include <mutex>
 #include <typeindex>
 #include <unordered_map>
 #include <queue>
-
-// stolen from: https://medium.com/@savas/nomad-game-engine-part-7-the-event-system-45a809ccb68f
 
 struct Event {
 protected:
@@ -13,23 +13,25 @@ protected:
 
 class HandlerFunctionBase {
 public:
-    void exec(Event* evnt) {
+    inline void exec(Event& evnt) {
         call(evnt);
     }
 
+    virtual ~HandlerFunctionBase() = default;
+
 private:
-    virtual void call(Event* evnt) = 0;
+    virtual void call(Event& evnt) = 0;
 };
 
 template <class EventType>
 class FunctionHandler : public HandlerFunctionBase {
 public:
-    typedef void (*Function)(EventType*);
+    using Function = void (*)(EventType&);
 
     FunctionHandler(Function function) : function{function} {};
 
-    void call(Event* evnt) {
-        (*function)(static_cast<EventType*>(evnt));
+    inline void call(Event& evnt) override {
+        (*function)(static_cast<EventType&>(evnt));
     }
 
     bool compare(const Function& rhs_f) const {
@@ -40,28 +42,6 @@ private:
     Function function;
 };
 
-template <class T, class EventType>
-class MemberFunctionHandler : public HandlerFunctionBase {
-public:
-    typedef void (T::*MemberFunction)(EventType*);
-
-    MemberFunctionHandler(T* instance, MemberFunction memberFunction)
-        : instance{instance}, memberFunction{memberFunction} {};
-
-    void call(Event* evnt) {
-        (instance->*memberFunction)(static_cast<EventType*>(evnt));
-    }
-
-    bool compare(const T* rhs_i, const MemberFunction& rhs_f) const {
-        return rhs_i == instance && rhs_f == memberFunction;
-    }
-
-private:
-    T* instance;
-    MemberFunction memberFunction;
-};
-
-typedef std::list<HandlerFunctionBase*> HandlerList;
 class EventBus {
 private:
     EventBus(){};
@@ -76,40 +56,33 @@ public:
     void operator=(EventBus const&) = delete;
 
     template <typename EventType>
-    void publish(EventType* evnt) {
-        HandlerList* handlers = subscribers[typeid(EventType)];
+    void publish(EventType&& evnt) {
+        std::scoped_lock<std::mutex> lock_guard(mutex);
 
-        if (handlers == nullptr) {
+        if (!subscribers.contains(typeid(EventType))) {
             return;
         }
 
-        for (auto& handler : *handlers) {
-            handler->exec(evnt);
+        for (auto& handler : subscribers[typeid(EventType)]) {
+            handler->exec(std::forward<EventType&>(evnt));
         }
     }
 
     template <class EventType>
-    void subscribe(void (*function)(EventType*)) {
-        HandlerList* handlers = subscribers[typeid(EventType)];
-        if (handlers == nullptr) {
-            handlers = new HandlerList();
-            subscribers[typeid(EventType)] = handlers;
+    void subscribe(void (*function)(EventType&)) {
+        std::scoped_lock<std::mutex> lock_guard(mutex);
+
+        if (!subscribers.contains(typeid(EventType))) {
+            subscribers[typeid(EventType)] = HandlerList();
         }
 
-        handlers->push_back(new FunctionHandler<EventType>(function));
-    }
-
-    template <class T, class EventType>
-    void subscribe(T* instance, void (T::*memberFunction)(EventType*)) {
-        HandlerList* handlers = subscribers[typeid(EventType)];
-        if (handlers == nullptr) {
-            handlers = new HandlerList();
-            subscribers[typeid(EventType)] = handlers;
-        }
-
-        handlers->push_back(new MemberFunctionHandler<T, EventType>(instance, memberFunction));
+        subscribers[typeid(EventType)].push_back(
+            std::make_unique<FunctionHandler<EventType>>(function));
     }
 
 private:
-    std::unordered_map<std::type_index, HandlerList*> subscribers;
+    using HandlerList = std::list<std::unique_ptr<HandlerFunctionBase>>;
+
+    std::unordered_map<std::type_index, HandlerList> subscribers;
+    mutable std::mutex mutex;
 };

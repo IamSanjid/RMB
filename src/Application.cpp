@@ -24,10 +24,10 @@
 #endif
 
 #include "Config.h"
+#include "Utils.h"
 #include "mouse.h"
 #include "npad_controller.h"
 #include "views/MainView.h"
-#include "Utils.h"
 
 #include <thread>
 #include <stdio.h>
@@ -101,8 +101,8 @@ bool Application::Initialize(const char* name, uint32_t width, uint32_t height) 
     if (!glfwInit())
         return false;
 
-    EventBus::Instance().subscribe(this, &Application::OnHotkey);
-    EventBus::Instance().subscribe(this, &Application::OnMouseButton);
+    EventBus::Instance().subscribe(&Application::OnHotkey);
+    EventBus::Instance().subscribe(&Application::OnMouseButton);
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
     // GL ES 2.0 + GLSL 100
@@ -269,28 +269,28 @@ void Application::DetectMouseMove() {
     // std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
-void Application::OnHotkey(HotkeyEvent* evt) {
-    DEBUG_OUT("hot_key: (%d, %d)\n", evt->key_, evt->modifier_);
+void Application::OnHotkey(HotkeyEvent& evt) {
+    auto app = Application::GetInstance();
+    DEBUG_OUT("hot_key: (%d, %d)\n", evt.key, evt.modifier);
 #if _DEBUG
-    if ((int)evt->key_ == glfwGetKeyScancode(GLFW_KEY_T) &&
-        (int)evt->modifier_ == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL)) {
-        mouse_->TurnTest(main_view_->test_delay, main_view_->test_type);
+    if ((int)evt.key == glfwGetKeyScancode(GLFW_KEY_T) &&
+        (int)evt.modifier == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL)) {
+        app->mouse_->TurnTest(main_view_->test_delay, app->main_view_->test_type);
     }
 #endif
-    if (evt->key_ == Config::Current()->TOGGLE_KEY &&
-        evt->modifier_ == Config::Current()->TOGGLE_MODIFIER)
-        TogglePanning();
+    if (evt.key == Config::Current()->TOGGLE_KEY &&
+        evt.modifier == Config::Current()->TOGGLE_MODIFIER)
+        app->TogglePanning();
 }
 
-void Application::OnMouseButton(MouseButtonEvent* evt) {
-    DEBUG_OUT("[%f] button: %d, pressed: %d\n", GetTotalRunningTime(), evt->key_,
-              evt->is_pressed_);
+void Application::OnMouseButton(MouseButtonEvent& evt) {
+    DEBUG_OUT("[%f] button: %d, pressed: %d\n", GetTotalRunningTime(), evt.key, evt.is_pressed);
     if (!Config::Current()->BIND_MOUSE_BUTTON) {
         return;
     }
 
     uint32_t key = 0;
-    switch (evt->key_) {
+    switch (evt.key) {
     case MOUSE_LBUTTON:
         key = Config::Current()->LEFT_MOUSE_KEY;
         break;
@@ -303,17 +303,19 @@ void Application::OnMouseButton(MouseButtonEvent* evt) {
     }
 
     if (key) {
-        controller_->SetButton(key, evt->is_pressed_);
+        auto app = Application::GetInstance();
+        app->controller_->SetButton(key, evt.is_pressed);
     }
 }
 
 void Application::OnMouseMove(int x, int y) {
-    if (panning_started_) {
-        mouse_->MouseMoved(x, y, screen_center_x_, screen_center_y_);
+    auto app = Application::GetInstance();
+    if (app->panning_started_) {
+        app->mouse_->MouseMoved(x, y, screen_center_x_, screen_center_y_);
         Native::GetInstance()->SetMousePos(screen_center_x_, screen_center_y_);
     }
     else {
-        UpdateMouseVisibility(GetTotalRunningTime());
+        app->UpdateMouseVisibility(GetTotalRunningTime());
     }
 }
 

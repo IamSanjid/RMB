@@ -1,10 +1,8 @@
 #pragma once
 
 #ifdef _MSC_VER
-#if _WIN32 || _WIN64
 #if !defined(_WIN64)
 #error Only 64bit is supported.
-#endif
 #endif
 #endif
 
@@ -15,16 +13,16 @@
 #include "EventSystem.h"
 
 struct HotkeyEvent : Event {
-    HotkeyEvent(uint32_t key, uint32_t modifier) : key_(key), modifier_(modifier){};
-    uint32_t key_;
-    uint32_t modifier_;
+    HotkeyEvent(uint32_t key, uint32_t modifier) : key(key), modifier(modifier){};
+    uint32_t key;
+    uint32_t modifier;
 };
 
 struct MouseButtonEvent : Event {
-    MouseButtonEvent(uint32_t key, bool is_pressed, int _x, int _y)
-        : key_(key), is_pressed_(is_pressed), x(_x), y(_y){};
-    uint32_t key_;
-    bool is_pressed_;
+    MouseButtonEvent(uint32_t key, bool is_pressed, int x, int y)
+        : key(key), is_pressed(is_pressed), x(x), y(y){};
+    uint32_t key;
+    bool is_pressed;
     int x;
     int y;
 };
@@ -33,7 +31,7 @@ const uint32_t MOUSE_LBUTTON = 0x1;
 const uint32_t MOUSE_RBUTTON = 0x2;
 const uint32_t MOUSE_MBUTTON = 0x3;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 using NativeWindow = void*;
 #else
 using NativeWindow = unsigned long;
