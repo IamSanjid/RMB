@@ -796,7 +796,7 @@ int build_main() {
 #ifdef _WIN32
 
 #define PLATFORM_SPECIFIC_DIR "src/win"
-    nob_cmd_append(&cmd, "-W4", "-std:c++20");
+    nob_cmd_append(&cmd, "-W4", "-std:c++20", "-EHsc");
 
 #if !defined(BUILD_DEBUG)
     nob_cmd_append(&cmd, "-GL", "-Oi");
