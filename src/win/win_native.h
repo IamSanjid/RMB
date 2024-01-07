@@ -27,7 +27,7 @@ public:
     bool IsMainWindowActive(const std::string& window_name) override;
     bool SetFocusOnWindow(const std::string& process_name) override;
     void CursorHide(bool hide) override;
-    void Update() override{};
+    void Update() override;
 
 private:
     struct RegKey {

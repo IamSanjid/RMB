@@ -51,6 +51,7 @@ WinNative::~WinNative() {
     if (reg_window_) {
         DestroyWindow(reg_window_);
         UnregisterClass(szWindowClass, nullptr);
+        reg_window_ = NULL;
     }
     if (default_arrow_) {
         SetSystemCursor(default_arrow_, OCR_NORMAL);
@@ -258,6 +259,16 @@ void WinNative::CursorHide(bool hide) {
         HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
         default_arrow_ = CopyCursor(arrowHandle);
         is_hidden = false;
+    }
+}
+
+void WinNative::Update() {
+    if (!reg_window_) {
+        return;
+    }
+    MSG msg = {};
+    while (PeekMessage(&msg, reg_window_, 0, 0, PM_REMOVE)) {
+        DispatchMessage(&msg);
     }
 }
 
