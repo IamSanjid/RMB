@@ -275,7 +275,7 @@ void Application::OnHotkey(HotkeyEvent& evt) {
 #if _DEBUG
     if ((int)evt.key == glfwGetKeyScancode(GLFW_KEY_T) &&
         (int)evt.modifier == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL)) {
-        app->mouse_->TurnTest(main_view_->test_delay, app->main_view_->test_type);
+        app->mouse_->TurnTest(app->main_view_->test_delay, app->main_view_->test_type);
     }
 #endif
     if (evt.key == Config::Current()->TOGGLE_KEY &&

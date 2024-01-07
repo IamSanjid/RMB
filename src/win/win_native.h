@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../native.h"
+#include "native.h"
 
 #define OEMRESOURCE
 #include <unordered_map>
