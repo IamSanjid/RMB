@@ -1,4 +1,4 @@
-// #define _NOB_TEST
+//#define _NOB_TEST
 
 #define NOB_IMPLEMENTATION
 #include ".nob/nob.h"
@@ -530,7 +530,11 @@ int external_imgui_build(const void* this_ptr) {
         nob_return_defer(0);
     }
 
+#if defined(__APPLE__) || defined(__MACH__)
     nob_cmd_append(&cmd, obj_cpp_compiler_exec);
+#else
+    nob_cmd_append(&cmd, cpp_compiler_exec);
+#endif
     CompileObjsOptions compile_objs_options = {.input_dir = proj_dir,
                                                .build_dir = build_path,
 #ifdef _WIN32
