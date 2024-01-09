@@ -134,22 +134,6 @@ private:
 class ButtonInputHandler {
 public:
     inline void OnChange(const ButtonStatus& status) {
-        const std::string& target_window_name = Config::Current()->TARGET_NAME;
-        if (!Native::GetInstance()->IsMainWindowActive(target_window_name)) {
-            if (status.reset) {
-                std::scoped_lock<std::mutex> lock{mutex};
-                // fixes the left button press issue when trying to focus on another window 
-                // other than the target window. (Mostly on windows..)
-                if (pressed_buttons_[status.button]) {
-                    auto last_window = Native::GetInstance()->GetFocusedWindow();
-                    Native::GetInstance()->SetFocusOnWindow(target_window_name);
-                    Native::GetInstance()->SendKeysUp((uint32_t*)&status.button, 1);
-                    Native::GetInstance()->SetFocusOnWindow(last_window);
-                    pressed_buttons_[status.button] = !status.reset;
-                }
-            }
-            return;
-        }
         if (status.reset) {
             Native::GetInstance()->SendKeysUp((uint32_t*)&status.button, 1);
         }

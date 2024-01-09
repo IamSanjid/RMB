@@ -1138,19 +1138,11 @@ int main(int argc, char** argv) {
     }
 
     Nob_Cmd cmd = {0};
-    const char* configured_binary = "./nob.configured";
-    const char* deps[] = {__FILE__, NOB_CONFIG_PATH};
-    int needs_rebuild = nob_needs_rebuild(configured_binary, deps, NOB_ARRAY_LEN(deps));
-    if (needs_rebuild < 0)
+    // TODO: Detect more accurately if the source was changed
+    static const char* configured_binary = "./nob.configured";
+    nob_cmd_append(&cmd, NOB_REBUILD_URSELF_EX(configured_binary, __FILE__), "-DNOB_CONFIGURED");
+    if (!nob_cmd_run_sync(cmd))
         return 1;
-    if (needs_rebuild) {
-        nob_cmd_append(&cmd, NOB_REBUILD_URSELF_EX(configured_binary, "nob.c"), "-DNOB_CONFIGURED");
-        if (!nob_cmd_run_sync(cmd))
-            return 1;
-    }
-    else {
-        nob_log(NOB_INFO, "executable `%s` is up to date", configured_binary);
-    }
 
     cmd.count = 0;
     nob_cmd_append(&cmd, configured_binary);

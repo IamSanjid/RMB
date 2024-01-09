@@ -279,6 +279,7 @@ void Application::OnHotkey(HotkeyEvent& evt) {
 }
 
 void Application::OnMouseButton(MouseButtonEvent& evt) {
+    static uint32_t last_key = 0;
     DEBUG_OUT("[%f] button: %d, pressed: %d\n", GetTotalRunningTime(), evt.key, evt.is_pressed);
     if (!Config::Current()->BIND_MOUSE_BUTTON) {
         return;
@@ -298,8 +299,24 @@ void Application::OnMouseButton(MouseButtonEvent& evt) {
     }
 
     if (key) {
+        const std::string& target_window_name = Config::Current()->TARGET_NAME;
         auto app = Application::GetInstance();
+        // fixes the left button press issue when trying to focus on another window
+        // other than the target window. (Mostly on windows..)
+        if (!Native::GetInstance()->IsMainWindowActive(target_window_name)) {
+            if (last_key) {
+                app->controller_->ClearState();
+                auto last_window = Native::GetInstance()->GetFocusedWindow();
+                Native::GetInstance()->SetFocusOnWindow(target_window_name);
+                Native::GetInstance()->SendKeysUp((uint32_t*)&last_key, 1);
+                Native::GetInstance()->SendKeysUp((uint32_t*)&key, 1);
+                Native::GetInstance()->SetFocusOnWindow(last_window);
+                last_key = 0;
+            }
+            return;
+        }
         app->controller_->SetButton(key, evt.is_pressed);
+        last_key = key;
     }
 }
 
