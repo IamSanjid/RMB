@@ -1,0 +1,459 @@
+// avoid using standard c++ libraries until clang supports c++20 jthread fully
+#include <CoreGraphics/CGEvent.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <Carbon/Carbon.h>
+#include <ApplicationServices/ApplicationServices.h>
+#include "macos_appkit.h"
+#include "native.h"
+
+extern "C"
+{
+    struct CGEventHandlerInner
+    {
+        CFMachPortRef eventTap = nullptr;
+        CFRunLoopSourceRef runLoopSource = nullptr;
+        CGEventSourceRef eventSource = nullptr;
+    };
+    /* static CGEventFlags MacOSModifierToEventFlag(uint32_t modifier) {
+        CGEventFlags nativeEventFlag = 0;
+        if (modifier == kVK_RightControl || modifier == kVK_Control)
+        {
+            nativeEventFlag = kCGEventFlagMaskControl;
+        }
+        else if (modifier == kVK_RightShift || modifier == kVK_Shift)
+        {
+            nativeEventFlag = kCGEventFlagMaskShift;
+        }
+        else if (modifier == kVK_Command)
+        {
+            nativeEventFlag = kCGEventFlagMaskCommand;
+        }
+        else if (modifier == kVK_Option || modifier == kVK_RightOption)
+        {
+            nativeEventFlag = kCGEventFlagMaskAlternate;
+        }
+        return nativeEventFlag;
+    } */
+
+    static uint32_t MacOSEventFlagsToModifier(CGEventFlags flags)
+    {
+        // If only one modifier is flag is set then it works the best
+        static uint64_t CONTROL = 0x40101;
+        static uint64_t RIGHT_CONTROL = 0x42100;
+        static uint64_t COMMAND = 0x100108;
+        static uint64_t RIGHT_COMMAND = 0x100110;
+        static uint64_t OPTION = 0x80120;
+        static uint64_t RIGHT_OPTION = 0x80140;
+        static uint64_t SHIFT = 0x20102;
+        static uint64_t RIGHT_SHIFT = 0x20104;
+
+        static uint64_t flags_to_modifier[] = {
+            CONTROL,
+            kVK_Control,
+            RIGHT_CONTROL,
+            kVK_RightControl,
+            COMMAND,
+            kVK_Command,
+            RIGHT_COMMAND,
+            kVK_RightCommand,
+            OPTION,
+            kVK_Option,
+            RIGHT_OPTION,
+            kVK_RightOption,
+            SHIFT,
+            kVK_Shift,
+            RIGHT_SHIFT,
+            kVK_RightShift,
+        };
+
+        for (size_t i = 0; i < sizeof(flags_to_modifier) / sizeof(flags_to_modifier[0]); i += 2)
+        {
+            const uint64_t flag = flags_to_modifier[i];
+            const uint32_t key = flags_to_modifier[i + 1];
+            if ((flags & flag) == flag)
+            {
+                return key;
+            }
+        }
+
+        return 0;
+    }
+
+    static void cg_evt_handle_global_pending_events()
+    {
+        while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true) == kCFRunLoopRunHandledSource)
+        {
+            // handle all pending events
+            // otherwise native_frontmost_app doesn't return correct results
+        }
+    }
+
+    inline static int CGWindowLayer(CFDictionaryRef window)
+    {
+        int layer;
+
+        CFNumberRef layerRef = static_cast<CFNumberRef>(CFDictionaryGetValue(window, kCGWindowLayer));
+        if (layerRef != nullptr && CFNumberGetValue(layerRef, kCFNumberIntType, &layer))
+        {
+            return layer;
+        }
+
+        return -1;
+    }
+
+#define MAX_WINDOW_TITLE_LENGTH 1024
+    inline static const char *CGWindowName(CFDictionaryRef window)
+    {
+        char buffer[MAX_WINDOW_TITLE_LENGTH]{0};
+        const char *title = nullptr;
+
+        CFStringRef titleRef = static_cast<CFStringRef>(CFDictionaryGetValue(window, kCGWindowName));
+        if (titleRef != nullptr && CFStringGetCString(titleRef, buffer, MAX_WINDOW_TITLE_LENGTH, kCFStringEncodingUTF8))
+        {
+            // size_t len = (size_t)CFStringGetLength(titleRef);
+            title = strdup(buffer);
+        }
+
+        return title;
+    }
+
+    inline static const char *CGWindowOwnerName(CFDictionaryRef window)
+    {
+        char buffer[MAX_WINDOW_TITLE_LENGTH]{0};
+        const char *ownerName = nullptr;
+
+        CFStringRef ownerNameRef = static_cast<CFStringRef>(CFDictionaryGetValue(window, kCGWindowOwnerName));
+        if (ownerNameRef != nullptr && CFStringGetCString(ownerNameRef, buffer, MAX_WINDOW_TITLE_LENGTH, kCFStringEncodingUTF8))
+        {
+            // size_t len = (size_t)CFStringGetLength(ownerNameRef);
+            ownerName = strdup(buffer);
+        }
+
+        return ownerName;
+    }
+
+    inline static int CGWindowPID(CFDictionaryRef window)
+    {
+        int pid;
+
+        CFNumberRef layerRef = static_cast<CFNumberRef>(CFDictionaryGetValue(window, kCGWindowOwnerPID));
+        if (layerRef != nullptr && CFNumberGetValue(layerRef, kCFNumberIntType, &pid))
+        {
+            return pid;
+        }
+
+        return -1;
+    }
+
+    void AppKit::requestPermissions()
+    {
+        enableAccessibility();
+        CGRequestListenEventAccess();
+        CGRequestPostEventAccess();
+    }
+
+    bool AppKit::isMainWindowActive(const char *window_name)
+    {
+        NativeAppInfo app_info{};
+        if (!getForegroundAppInfo(&app_info))
+        {
+            return false;
+        }
+
+        if (strstr(app_info.name, window_name) != nullptr)
+        {
+            free((void *)app_info.name);
+            return true;
+        }
+        free((void *)app_info.name);
+
+        const char *title = nullptr;
+        // Get window title
+        {
+            CFArrayRef windowList = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
+            if (windowList != nullptr)
+            {
+                CFIndex count = CFArrayGetCount(windowList);
+
+                for (CFIndex i = 0; i < count; i++)
+                {
+                    CFDictionaryRef window = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(windowList, i));
+                    if (CGWindowLayer(window) != 0)
+                    {
+                        continue;
+                    }
+
+                    if (CGWindowPID(window) == app_info.pid)
+                    {
+                        title = CGWindowName(window);
+                        break;
+                    }
+                }
+
+                CFRelease(windowList);
+            }
+        }
+
+        bool result = false;
+        if (title)
+        {
+            result = strstr(title, window_name) != nullptr;
+            free((void *)title);
+        }
+        return result;
+    }
+
+    bool AppKit::setFocusOnWindowId(int id)
+    {
+        cg_evt_handle_global_pending_events();
+        return activateProcess(static_cast<pid_t>(id));
+    }
+
+    bool AppKit::setFocusOnWindow(const char *window_name)
+    {
+        CFArrayRef windowList = CGWindowListCopyWindowInfo(kCGWindowListOptionAll | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
+        if (windowList != nullptr)
+        {
+            CFIndex count = CFArrayGetCount(windowList);
+
+            for (CFIndex i = 0; i < count; i++)
+            {
+                CFDictionaryRef window = static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(windowList, i));
+                if (CGWindowLayer(window) != 0)
+                {
+                    continue;
+                }
+
+                const char *title = CGWindowName(window);
+                int pid = -1;
+                if (title && strstr(title, window_name) != nullptr)
+                {
+                    pid = CGWindowPID(window);
+                }
+                else
+                {
+                    const char *appName = CGWindowOwnerName(window);
+                    if (appName && strstr(appName, window_name) != nullptr)
+                    {
+                        pid = CGWindowPID(window);
+                    }
+                    if (appName)
+                        free((void *)appName);
+                }
+
+                if (title)
+                    free((void *)title);
+
+                if (pid > 0)
+                {
+                    if (setFocusOnWindowId(pid))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            CFRelease(windowList);
+        }
+        return false;
+    }
+
+} // extern "C"
+
+CGEventRef CGEventCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *user_ptr);
+
+CGEventHandler::CGEventHandler(HotkeyHandlerCallback hkHandler, MouseButtonHandlerCallback mbHandler)
+{
+    cachedCallbacks.hotkeyHandler = hkHandler;
+    cachedCallbacks.mouseButtonHandler = mbHandler;
+
+    inner = new CGEventHandlerInner();
+    inner->eventSource = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+    ;
+    CGEventMask eventMask = (1 << kCGEventKeyDown) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventLeftMouseUp) | (1 << kCGEventRightMouseDown) | (1 << kCGEventRightMouseUp) | (1 << kCGEventOtherMouseDown) | (1 << kCGEventOtherMouseUp);
+    inner->eventTap = CGEventTapCreate(kCGHIDEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, CGEventCallBack, this);
+    if (!inner->eventTap)
+    {
+        fprintf(stderr, "failed to create event tap\n");
+    }
+}
+
+CGEventHandler::~CGEventHandler()
+{
+    if (!inner)
+    {
+        return;
+    }
+    if (inner->eventTap)
+    {
+        CGEventTapEnable(inner->eventTap, false);
+        CFRelease(inner->eventTap);
+        if (inner->runLoopSource)
+        {
+            CFRelease(inner->runLoopSource);
+        }
+    }
+
+    inner->eventTap = nullptr;
+    inner->runLoopSource = nullptr;
+
+    delete inner;
+    inner = nullptr;
+}
+
+void CGEventHandler::Update()
+{
+    if (!inner->runLoopSource && inner->eventTap)
+    {
+        inner->runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, inner->eventTap, 0);
+
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), inner->runLoopSource, kCFRunLoopCommonModes);
+        CGEventTapEnable(inner->eventTap, true);
+    }
+
+    cg_evt_handle_global_pending_events();
+    // CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, false);
+}
+
+bool CGEventHandler::SendKey(char32_t chr, uint32_t code, bool down)
+{
+    CGEventRef keyEvent = CGEventCreateKeyboardEvent(inner->eventSource, (CGKeyCode)code, down);
+    if (!keyEvent)
+    {
+        return false;
+    }
+    if (chr)
+    {
+        CFStringRef cfstr = CFStringCreateWithBytes(kCFAllocatorDefault, reinterpret_cast<UInt8 *>(&chr), sizeof(chr), kCFStringEncodingUTF32LE, false);
+        if (!cfstr)
+        {
+            CFRelease(keyEvent);
+            return false;
+        }
+
+        auto length = CFStringGetLength(cfstr);
+        UniChar *utf16_data = (UniChar *)malloc(sizeof(UniChar) * length);
+        CFStringGetCharacters(cfstr, CFRangeMake(0, length), utf16_data);
+        CGEventKeyboardSetUnicodeString(keyEvent, length, utf16_data);
+        free((void *)utf16_data);
+
+        CFRelease(cfstr);
+    }
+    CGEventPost(kCGHIDEventTap, keyEvent);
+    CFRelease(keyEvent);
+    return true;
+}
+
+void CGEventHandler::SetMousePos(int x, int y)
+{
+    CGDisplayMoveCursorToPoint(CGMainDisplayID(), {.x = (float)x,
+                                                   .y = (float)y});
+}
+
+void CGEventHandler::CursorHide(bool hide)
+{
+    if (hide)
+    {
+        CGDisplayHideCursor(CGMainDisplayID());
+    }
+    else
+    {
+        CGDisplayShowCursor(CGMainDisplayID());
+    }
+}
+
+CGEventRef CGEventCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *user_ptr)
+{
+    if (user_ptr == NULL)
+    {
+        return event;
+    }
+    CGEventHandler *_this = (CGEventHandler *)user_ptr;
+    switch (type)
+    {
+    case kCGEventKeyDown:
+    {
+        CGEventFlags modifierFlags = CGEventGetFlags(event);
+        uint32_t keycode = (uint32_t)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+        uint32_t modifier = MacOSEventFlagsToModifier(modifierFlags);
+#ifdef _DEBUG
+        printf("[kCGEventKeyDown] key=0x%x, modifier=0x%x, modifierFlags=0x%llx\n", keycode, modifier, modifierFlags);
+#endif
+        if (modifierFlags == kCGEventFlagMaskNonCoalesced)
+        {
+            return event;
+        }
+
+        if (_this->cachedCallbacks.hotkeyHandler(keycode, modifier))
+        {
+            // Handled request delete...
+            auto source = CGEventCreateSourceFromEvent(event);
+            auto upModifier = CGEventCreateKeyboardEvent(source, (CGKeyCode)modifier, false);
+            auto newEvent = CGEventCreateKeyboardEvent(source, (CGKeyCode)keycode, false);
+            if (!newEvent || !upModifier)
+            {
+                break;
+            }
+            CGEventSetFlags(newEvent, kCGEventFlagMaskNonCoalesced);
+            CGEventSetFlags(upModifier, kCGEventFlagMaskNonCoalesced);
+
+            CGEventTapPostEvent(proxy, upModifier);
+
+            CFRelease(source);
+            CFRelease(upModifier);
+
+            return newEvent;
+        }
+        break;
+    }
+    case kCGEventTapDisabledByTimeout:
+    case kCGEventTapDisabledByUserInput:
+    {
+        if (user_ptr != nullptr)
+        {
+            CGEventTapEnable(_this->inner->eventTap, true);
+        }
+        break;
+    }
+    default:
+    {
+        CGPoint location = CGEventGetLocation(event);
+        uint32_t key = 0;
+        int x = (int)abs(location.x);
+        int y = (int)abs(location.y);
+        bool is_pressed = true;
+        switch (type)
+        {
+        case kCGEventLeftMouseDown:
+        case kCGEventLeftMouseUp:
+            key = MOUSE_LBUTTON;
+            break;
+        case kCGEventRightMouseDown:
+        case kCGEventRightMouseUp:
+            key = MOUSE_RBUTTON;
+            break;
+        case kCGEventOtherMouseDown:
+        case kCGEventOtherMouseUp:
+            key = MOUSE_MBUTTON;
+            break;
+        default:
+            return event;
+        }
+
+        switch (type)
+        {
+        case kCGEventLeftMouseUp:
+        case kCGEventRightMouseUp:
+        case kCGEventOtherMouseUp:
+            is_pressed = false;
+            break;
+        default:
+            break;
+        }
+
+        _this->cachedCallbacks.mouseButtonHandler(key, is_pressed, x, y);
+        break;
+    }
+    }
+    return event;
+}

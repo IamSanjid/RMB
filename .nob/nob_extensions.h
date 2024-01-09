@@ -35,9 +35,10 @@ bool nob_fps_contains_path(Nob_File_Paths* fps, const char* path);
 Nob_String_View nob_sv_chop_by_delim_get_last(Nob_String_View* sv, char delim);
 bool nob_sv_startswith_cstr(Nob_String_View sv, const char* cstr);
 bool nob_sv_endswith_cstr(Nob_String_View sv, const char* cstr);
+bool nob_sv_contains_cstr(Nob_String_View sv, const char* cstr);
+Nob_String_View nob_sv_chop_left_by_n(Nob_String_View sv, size_t n);
+Nob_String_View nob_sv_chop_right_by_n(Nob_String_View sv, size_t n);
 
-// TODO: Implement for windows... 
-// reference: https://learn.microsoft.com/en-us/windows/win32/ProcThread/creating-a-child-process-with-redirected-input-and-output
 bool nob_cmd_run_sync_with_output(Nob_Cmd cmd, Nob_String_Builder* o_sb,
                                   EXIT_CODE_TYPE* exit_code);
 bool nob_cmd_run_sync_silently(Nob_Cmd cmd, EXIT_CODE_TYPE* exit_code);
@@ -77,6 +78,12 @@ bool nob_sv_startswith_cstr(Nob_String_View sv, const char* cstr) {
     return memcmp(sv.data, cstr, len) == 0;
 }
 
+bool nob_sv_startswith(Nob_String_View sv_a, Nob_String_View sv_b) {
+    if (sv_a.count < sv_b.count) return false;
+
+    return memcmp(sv_a.data, sv_b.data, sv_b.count) == 0;
+}
+
 bool nob_sv_endswith_cstr(Nob_String_View sv, const char* cstr) {
     size_t len = strlen(cstr);
     if (sv.count < len) return false;
@@ -84,9 +91,28 @@ bool nob_sv_endswith_cstr(Nob_String_View sv, const char* cstr) {
     return memcmp(sv.data + (sv.count - len), cstr, len) == 0;
 }
 
-// TODO: Implement for windows... 
-// reference: https://learn.microsoft.com/en-us/windows/win32/ProcThread/creating-a-child-process-with-redirected-input-and-output
-// modified version of `nob_cmd_run_sync`
+bool nob_sv_contains_cstr(Nob_String_View sv, const char* cstr) {
+    size_t len = strlen(cstr);
+    if (sv.count < len) return false;
+
+    size_t i = 0;
+    while (i < sv.count && (sv.count - i - 1) > len) {
+        if (memcmp(sv.data + i, cstr, len) == 0 || memcmp(sv.data + (sv.count - i), cstr, len) == 0) {
+            return true;
+        }
+        i++;
+    }
+
+    return false;
+}
+
+Nob_String_View nob_sv_chop_left_by_n(Nob_String_View sv, size_t n) {
+    return nob_sv_from_parts(sv.data + n, sv.count - n);
+}
+
+Nob_String_View nob_sv_chop_right_by_n(Nob_String_View sv, size_t n) {
+    return nob_sv_from_parts(sv.data, sv.count - n);
+}
 
 bool _nob_read_from_pipe(PIPE_TYPE pipe_fds[2], Nob_String_Builder* o_sb) {
     char loc_buf[BUFSIZ];
@@ -566,16 +592,6 @@ const char* nob_filename_from_path(const char* path) {
     return nob_temp_sv_to_cstr(filename);
 }
 
-bool nob_sv_startswith(Nob_String_View sv_a, Nob_String_View sv_b) {
-    if (sv_a.count < sv_b.count) return false;
-
-    return memcmp(sv_a.data, sv_b.data, sv_b.count) == 0;
-}
-
-Nob_String_View nob_sv_chop_by_n(Nob_String_View sv, size_t n) {
-    return nob_sv_from_parts(sv.data + n, sv.count - n);
-}
-
 // RES_VALID_TILL_TMP_RESET
 const char* nob_relative_path_from(const char* from_path, const char* to_path) {
     char* result = NULL;
@@ -603,7 +619,7 @@ const char* nob_relative_path_from(const char* from_path, const char* to_path) {
         nob_return_defer(NULL);
     }
 
-    result = (char*)nob_temp_sv_to_cstr(nob_sv_chop_by_n(to_sv, from_sv.count));
+    result = (char*)nob_temp_sv_to_cstr(nob_sv_chop_left_by_n(to_sv, from_sv.count));
 
 defer:
     if (tmp_from_path) {

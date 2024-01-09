@@ -1,4 +1,4 @@
-//#define _NOB_TEST
+// #define _NOB_TEST
 
 #define NOB_IMPLEMENTATION
 #include ".nob/nob.h"
@@ -185,7 +185,7 @@ defer:
     return result;
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__MACH__)
 // Uses Temp Buffer of NOB the caller must be responsible for freeing the strings...
 bool unix_find_glfw_required_x11_paths(char** include_dir, char** libs_dir) {
     // reference: https://github.com/Kitware/CMake/blob/master/Modules/FindX11.cmake
@@ -270,6 +270,7 @@ typedef struct {
 #endif
 } CompileObjsOptions;
 
+// TODO(For future self projects): make these configurable through the config header file..
 void default_platform_specific_compile_options(Nob_Cmd* cmd, CompileObjsOptions* options) {
     options->max_process_count = MAX_PROCESS;
     options->force_rebuild = false;
@@ -301,16 +302,19 @@ void default_platform_specific_compile_options(Nob_Cmd* cmd, CompileObjsOptions*
     }
 
 #else // _WIN32
-#if defined(__APPLE__) || defined(__MACH__)
-
-#else // MACOS
-
-#endif // UNIX/LINUX
 
 #ifdef BUILD_DEBUG
     nob_cmd_append(cmd, "-O0", "-ggdb", "-D_DEBUG=1");
 #else
-    nob_cmd_append(cmd, "-O2", "-s", "-DNDEBUG");
+    nob_cmd_append(cmd, "-O2", "-DNDEBUG");
+#if defined(__APPLE__) || defined(__MACH__)
+    if (cmd->count > 0 && strcmp(cmd->items[0], cpp_compiler_exec) == 0) {
+        nob_cmd_append(cmd, "-s");
+    }
+#else  // MACOS
+    nob_cmd_append(cmd, "-s");
+#endif // UNIX/LINUX
+
 #endif
 
 #endif // END_OF_PLATFORM_SPECIFIC
@@ -421,9 +425,15 @@ int external_glfw_build(const void* this_ptr) {
                    "/external:W3");
     nob_cmd_append(&cmd, "-D_GLFW_WIN32");
 #else
+    nob_cmd_append(&cmd, "-fPIC", "-Wall", "-std=gnu99");
 #if defined(__APPLE__) || defined(__MACH__)
-    nob_log(NOB_INFO, "TODO: for macos");
-    nob_return_defer(1);
+    static const char* platform_specific_sources[] = {
+        "src/cocoa_init.m",   "src/cocoa_joystick.m", "src/cocoa_monitor.m",
+        "src/cocoa_window.m", "src/cocoa_time.c",     "src/posix_thread.c",
+        "src/nsgl_context.m", "src/egl_context.c",    "src/osmesa_context.c",
+    };
+
+    nob_cmd_append(&cmd, "-D_GLFW_COCOA");
 #else
     static const char* platform_specific_sources[] = {
         "src/x11_init.c",       "src/x11_monitor.c",   "src/x11_window.c",  "src/xkb_unicode.c",
@@ -440,7 +450,7 @@ int external_glfw_build(const void* this_ptr) {
         nob_cmd_append(&cmd, nob_temp_sprintf("-I%s", x11_include_path));
         nob_cmd_append(&cmd, nob_temp_sprintf("-L%s", x11_library_path));
     }
-    nob_cmd_append(&cmd, "-D_GLFW_X11", "-fPIC", "-Wall", "-std=gnu99");
+    nob_cmd_append(&cmd, "-D_GLFW_X11");
 #endif
 #endif
 
@@ -470,10 +480,6 @@ int external_glfw_build(const void* this_ptr) {
     }
 
 #else
-#if defined(__APPLE__) || defined(__MACH__)
-    nob_log(NOB_INFO, "TODO: for macos");
-    nob_return_defer(1);
-#else
     const char* libglfw3_path = nob_temp_sprintf("%s/libglfw3.a", build_path);
     if (nob_needs_rebuild(libglfw3_path, object_files.items, object_files.count)) {
         nob_cmd_append(&cmd, "ar", "qc", libglfw3_path);
@@ -488,8 +494,6 @@ int external_glfw_build(const void* this_ptr) {
         if (!nob_cmd_run_sync(cmd))
             nob_return_defer(false);
     }
-
-#endif
 #endif
 
     nob_log(NOB_INFO, "GLFW has been built successfully!");
@@ -526,7 +530,7 @@ int external_imgui_build(const void* this_ptr) {
         nob_return_defer(0);
     }
 
-    nob_cmd_append(&cmd, cpp_compiler_exec);
+    nob_cmd_append(&cmd, obj_cpp_compiler_exec);
     CompileObjsOptions compile_objs_options = {.input_dir = proj_dir,
                                                .build_dir = build_path,
 #ifdef _WIN32
@@ -559,10 +563,7 @@ int external_imgui_build(const void* this_ptr) {
     nob_cmd_append(&cmd, "-W4", "-std:c++20");
 #else // _WIN32
 #if defined(__APPLE__) || defined(__MACH__)
-    nob_log(NOB_INFO, "TODO: for macos");
-    nob_return_defer(1);
-#else // MACOS
-
+#else  // MACOS
 #endif // LINUX
     nob_cmd_append(&cmd, "-Wall", "-std=c++20");
 #endif // END_OF_PLATFORM_SEPCIFIC
@@ -583,16 +584,119 @@ defer:
 #ifdef _WIN32
 
 int populate_lib_inc_dirs() {
-    nob_log(NOB_INFO, "TODO: for macos");
-    exit(1);
+    NOB_ASSERT(false && "TODO: for windows");
 }
 
 #else
 #if defined(__APPLE__) || defined(__MACH__)
 
 int populate_lib_inc_dirs() {
-    nob_log(NOB_INFO, "TODO: for macos");
-    exit(1);
+    int result = 1;
+
+    Nob_Cmd cmd = {0};
+    Nob_String_Builder sb = {0};
+
+    nob_log(NOB_INFO, "Extracting system library and include path from c compiler...");
+    nob_cmd_append(&cmd, CC, "-v", "-o", TEMPORARY_NOB_OUT, __FILE__);
+    if (!nob_cmd_run_sync_with_output(cmd, &sb, NULL) || sb.count <= 1) {
+        nob_return_defer(0);
+    }
+    nob_sb_append_null(&sb);
+
+    static const char* lib_dir_param = "-L";
+    const size_t lib_dir_param_sz = strlen(lib_dir_param);
+    static const size_t version_segments = 3;
+
+    bool searching_for_include_dirs = false;
+    Nob_String_View output = nob_sv_from_parts(sb.items, sb.count);
+    do {
+        Nob_String_View line = nob_sv_chop_by_delim(&output, '\n');
+        if (line.count > 0) {
+            if (nob_sv_contains_cstr(line, "/bin/ld")) {
+                nob_log(NOB_INFO, "LD line:" SV_Fmt, SV_Arg(line));
+                Nob_String_View args;
+                do {
+                    args = nob_sv_chop_by_delim(&line, ' ');
+                    if (nob_sv_startswith_cstr(args, lib_dir_param)) {
+                        char* lib_dir = realpath(
+                            nob_temp_sv_to_cstr(nob_sv_chop_left_by_n(args, lib_dir_param_sz)),
+                            NULL);
+                        if (lib_dir) {
+                            if (!nob_fps_contains_path(&library_dirs, lib_dir)) {
+                                nob_log(NOB_INFO, "Found LIB DIR: %s", lib_dir);
+                                nob_da_append(&library_dirs, lib_dir);
+                            }
+                            else
+                                free(lib_dir);
+                        }
+                    }
+                    else if (nob_sv_startswith_cstr(args, "-platform_version")) {
+                        size_t cur_version_segments = version_segments;
+                        Nob_String_Builder version_sb = {0};
+                        do {
+                            if (cur_version_segments != version_segments)
+                                nob_sb_append_buf(&version_sb, ",", 1);
+                            args = nob_sv_chop_by_delim(&line, ' ');
+                            nob_sb_append_buf(&version_sb, args.data, args.count);
+                            cur_version_segments--;
+                        } while (args.count > 0 && cur_version_segments > 0);
+                        nob_sb_append_null(&version_sb);
+                        os_version_str = version_sb.items; // should free manually...
+                        nob_log(NOB_INFO, "OSX Version: %s", os_version_str);
+                    }
+                    else if (nob_sv_startswith_cstr(args, "-syslibroot")) {
+                        args = nob_sv_chop_by_delim(&line, ' ');
+                        if (args.count > 0) {
+                            Nob_String_Builder sysroot_dir_sb = {0};
+                            nob_sb_append_buf(&sysroot_dir_sb, args.data, args.count);
+                            nob_sb_append_null(&sysroot_dir_sb);
+                            os_sysroot_dir = sysroot_dir_sb.items; // should free manually...
+                            nob_log(NOB_INFO, "Sysroot: %s", os_sysroot_dir);
+                        }
+                    }
+                } while (line.count > 0);
+                continue;
+            }
+            if (searching_for_include_dirs) {
+                if (nob_sv_startswith_cstr(line, "End of search list")) {
+                    searching_for_include_dirs = false;
+                    continue;
+                }
+                char* include_dir = realpath(nob_temp_sv_to_cstr(nob_sv_trim(line)), NULL);
+                if (include_dir) {
+                    if (!nob_fps_contains_path(&include_dirs, include_dir)) {
+                        nob_log(NOB_INFO, "Found INC DIR: %s", include_dir);
+                        nob_da_append(&include_dirs, include_dir);
+                    }
+                    else
+                        free(include_dir);
+                }
+                continue;
+            }
+            if (nob_sv_startswith_cstr(line, "#include <...> search"))
+                searching_for_include_dirs = true;
+        }
+    } while (output.count > 0);
+    if (searching_for_include_dirs) {
+        nob_log(NOB_ERROR, "Couldn't parse the system default include dirs");
+        nob_return_defer(0);
+    }
+    if (!os_version_str) {
+        nob_log(NOB_ERROR, "Couldn't find MacOSX platform version, please specify clang c compiler "
+                           "in the config or the parsing function is outdated..");
+        nob_return_defer(0);
+    }
+    if (!os_sysroot_dir) {
+        nob_log(NOB_ERROR, "Missing SDK sysroot lib dir, please specify clang c compiler in the "
+                           "config or the parsing function is outdated..");
+        nob_return_defer(0);
+    }
+defer:
+    if (nob_file_exists(TEMPORARY_NOB_OUT))
+        remove(TEMPORARY_NOB_OUT);
+    nob_cmd_free(cmd);
+    nob_sb_free(sb);
+    return result;
 }
 
 #else
@@ -604,7 +708,7 @@ int populate_lib_inc_dirs() {
     Nob_String_Builder sb = {0};
 
     nob_log(NOB_INFO, "Extracting system library and include path from c compiler...");
-    nob_cmd_append(&cmd, c_compiler_exec, "-v", "-o", TEMPORARY_NOB_OUT, __FILE__);
+    nob_cmd_append(&cmd, CC, "-v", "-o", TEMPORARY_NOB_OUT, __FILE__);
     if (!nob_cmd_run_sync_with_output(cmd, &sb, NULL) || sb.count <= 1) {
         nob_return_defer(0);
     }
@@ -672,10 +776,12 @@ int check_prerequisites() {
 #ifdef _WIN32
     nob_cmd_append(&required_bins, "link", "", cpp_compiler_exec, "", "lib", "");
 #else
+    nob_cmd_append(&required_bins, CC, "--version", "ar", "--version", "ranlib", "--version");
+    nob_cmd_append(&required_bins, cpp_compiler_exec, "--version", c_compiler_exec, "--version");
 #if defined(__APPLE__) || defined(__MACH__)
-#else
-    nob_cmd_append(&required_bins, "cc", "--version", "ar", "--version", "ranlib", "--version");
+    nob_cmd_append(&required_bins, obj_cpp_compiler_exec, "--version");
 #endif
+
 #endif
 
     int result = 1;
@@ -709,10 +815,7 @@ int check_prerequisites() {
     }
 #ifdef _WIN32
 #else
-#if defined(__APPLE__) || defined(__MACH__)
-#else
     nob_return_defer(populate_lib_inc_dirs());
-#endif
 #endif
 defer:
     nob_cmd_free(cmd);
@@ -782,8 +885,11 @@ int build_main() {
             imgui_objs_path = nob_temp_sprintf(BUILD__PATH("%s"), dir);
         }
     }
+#if defined(__APPLE__) || defined(__MACH__)
+    nob_cmd_append(&cmd, obj_cpp_compiler_exec);
+#else
     nob_cmd_append(&cmd, cpp_compiler_exec);
-
+#endif
     CompileObjsOptions compile_objs_options = {.input_dir = source_dir,
                                                .build_dir = build_path,
 #ifdef _WIN32
@@ -793,6 +899,7 @@ int build_main() {
     };
     default_platform_specific_compile_options(&cmd, &compile_objs_options);
     compile_objs_options.force_rebuild = true;
+
 #ifdef _WIN32
 
 #define PLATFORM_SPECIFIC_DIR "src/win"
@@ -805,28 +912,69 @@ int build_main() {
     libglfw3_path = nob_temp_sprintf("%s/glfw3.lib", libglfw3_path);
 
 #else // _WIN32
+
 #if defined(__APPLE__) || defined(__MACH__)
 
 #define PLATFORM_SPECIFIC_DIR "src/macos"
-
+    nob_cmd_append(&cmd, "-I/usr/local/include", "-I/opt/local/include", "-I/opt/homebrew/include");
 #else // MACOS
 
 #define PLATFORM_SPECIFIC_DIR "src/linux"
-    nob_cmd_append(&cmd, "-Wall", "-std=c++20");
-
-    libglfw3_path = nob_temp_sprintf("%s/libglfw3.a", libglfw3_path);
 
 #endif // UNIX/LINUX
+    nob_cmd_append(&cmd, "-Wall", "-std=c++20");
+    libglfw3_path = nob_temp_sprintf("%s/libglfw3.a", libglfw3_path);
 #endif // END_OF_PLATFORM_SPECIFIC
+
+    nob_da_append(&includes, PLATFORM_SPECIFIC_DIR);
+    for (size_t i = 0; i < includes.count; i++) {
+        nob_cmd_append(&cmd, nob_temp_sprintf("-I%s", includes.items[i]));
+    }
+
+    // compiling objective-cpp code using apple's clang compiler
+#if defined(__APPLE__) || defined(__MACH__)
+    nob_log(NOB_INFO, "Compiling Objective-c/cpp files...");
+    static const char* obj_c_exts[] = {".m", ".mm"};
+    Nob_File_Paths obj_srcs = {0};
+
+    if (!nob_find_files_with_extensions(PLATFORM_SPECIFIC_DIR, obj_c_exts,
+                                        NOB_ARRAY_LEN(obj_c_exts), &obj_srcs)) {
+        nob_return_defer(0);
+    }
+
+    if (!compile_obj_files(&cmd, &compile_objs_options, obj_srcs.items, obj_srcs.count,
+                           &object_files)) {
+        nob_return_defer(0);
+    }
+
+    // special file type(decided by me) to create bridge between objective-c and native-cpp
+    obj_srcs.count = 0;
+    static const char* cm_exts[] = {".cm"};
+    if (!nob_find_files_with_extensions(PLATFORM_SPECIFIC_DIR, cm_exts, NOB_ARRAY_LEN(cm_exts),
+                                        &obj_srcs)) {
+        nob_return_defer(0);
+    }
+
+    // It would've nice if we could partially create/edit current cmd bucket/arg list...
+    size_t cmd_checkpoint = cmd.count;
+    nob_cmd_append(&cmd, "-x", "c++");
+
+    if (!compile_obj_files(&cmd, &compile_objs_options, obj_srcs.items, obj_srcs.count,
+                           &object_files)) {
+        nob_return_defer(0);
+    }
+
+    cmd.count = cmd_checkpoint;
+    cmd.items[0] = cpp_compiler_exec;
+#ifndef BUILD_DEBUG
+    nob_cmd_append(&cmd, "-s");
+#endif
+
+#endif
 
     if (!nob_find_files_with_extensions(PLATFORM_SPECIFIC_DIR, source_exts,
                                         NOB_ARRAY_LEN(source_exts), &srcs)) {
         nob_return_defer(0);
-    }
-    nob_da_append(&includes, PLATFORM_SPECIFIC_DIR);
-
-    for (size_t i = 0; i < includes.count; i++) {
-        nob_cmd_append(&cmd, nob_temp_sprintf("-I%s", includes.items[i]));
     }
 
     if (!compile_obj_files(&cmd, &compile_objs_options, srcs.items, srcs.count, &object_files)) {
@@ -871,27 +1019,37 @@ int build_main() {
     }
 
 #else // _WIN32
-#if defined(__APPLE__) || defined(__MACH__)
-
-#else // MACOS
-
     if (nob_needs_rebuild(main_path, object_files.items, object_files.count)) {
         nob_cmd_append(&cmd, cpp_compiler_exec, "-o", main_path);
 
         for (size_t i = 0; i < object_files.count; ++i) {
             nob_cmd_append(&cmd, object_files.items[i]);
         }
-        nob_cmd_append(&cmd, libglfw3_path, "-lGL", "-lX11", "-lXi", "-lXfixes", "-lXtst", "-lm",
-                       "-lpthread", "-ldl");
+        nob_cmd_append(&cmd, libglfw3_path);
+#if defined(__APPLE__) || defined(__MACH__)
+        for (size_t i = 0; i < library_dirs.count; i++) {
+            nob_cmd_append(&cmd, nob_temp_sprintf("-L%s", library_dirs.items[i]));
+        }
+        nob_cmd_append(&cmd, "-lm", "-ldl", "-lpthread", "-lc++", "-lSystem");
+        nob_cmd_append(&cmd, "-framework", "OpenGL", "-framework", "Cocoa", "-framework", "IOKit",
+                       "-framework", "Foundation", "-framework", "AppKit");
+        nob_cmd_append(&cmd, "-framework", "Carbon", "-framework", "ApplicationServices");
+        nob_cmd_append(&cmd, nob_temp_sprintf("-Wl,-platform_version,%s", os_version_str));
+#else  // MACOS
+        nob_cmd_append(&cmd, "-lGL", "-lX11", "-lXi", "-lXfixes", "-lXtst", "-lm", "-lpthread",
+                       "-ldl");
+#endif // LINUX
         if (!nob_cmd_run_sync(cmd))
             nob_return_defer(false);
     }
-
-#endif // LINUX
 #endif
     nob_log(NOB_INFO, "Built '" MAIN "' successfully: %s", main_path);
 
 defer:
+#if defined(__APPLE__) || defined(__MACH__)
+    if (obj_srcs.capacity > 0)
+        nob_da_free(obj_srcs);
+#endif
     nob_cmd_free(cmd);
     nob_da_free(srcs);
     nob_da_free(includes);
@@ -905,12 +1063,17 @@ void cleanup() {
     nob_log(NOB_INFO, "Finished '" MAIN "' building step, cleaning up and quitting.");
 #ifndef _WIN32
 #if defined(__APPLE__) || defined(__MACH__)
-#else
+    if (os_version_str)
+        free(os_version_str);
+    if (os_sysroot_dir)
+        free(os_sysroot_dir);
+#else // MACOS
+
+#endif // LINUX
     if (include_dirs.count > 0)
         nob_da_deep_free(include_dirs);
     if (library_dirs.count > 0)
         nob_da_deep_free(library_dirs);
-#endif
 #endif
 }
 

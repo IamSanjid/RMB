@@ -1,26 +1,21 @@
 #ifndef MAC_NATIVE_H
 #define MAC_NATIVE_H
 
-#include <CoreGraphics/CGEvent.h>
+#include <string.h>
 #include <unistd.h>
-#include <string>
 
 extern "C" {
 
 struct NativeAppInfo {
     pid_t pid;
-    std::string name;
-    std::string title;
+    const char* name;
 };
 
-class AppKit
-{
+class AppKit {
 public:
     AppKit();
     ~AppKit();
 
-    void *addGlobalMonitor(CGKeyCode keycode, CGEventFlags modifier, void *userData, void (*handler)(void *));
-    void removeGlobalMonitor(void *monitor);
     bool enableAccessibility();
     pid_t lastActiveProcessId();
     pid_t activeProcessId();
@@ -30,10 +25,36 @@ public:
     void cursorHide(bool);
     bool getForegroundAppInfo(NativeAppInfo*);
 
+    void requestPermissions();
+    bool isMainWindowActive(const char* window_name);
+    bool setFocusOnWindowId(int id);
+    bool setFocusOnWindow(const char* window_name);
+
 private:
-    void *self;
+    void* self;
 };
 
-}  // extern "C"
+typedef bool (*HotkeyHandlerCallback)(uint32_t, uint32_t);
+typedef bool (*MouseButtonHandlerCallback)(uint32_t, bool, int, int);
+struct CGeventHandlerCallbacks {
+    HotkeyHandlerCallback hotkeyHandler;
+    MouseButtonHandlerCallback mouseButtonHandler;
+};
 
-#endif  // MAC_NATIVE_H
+struct CGEventHandlerInner;
+struct CGEventHandler {
+    CGeventHandlerCallbacks cachedCallbacks;
+    CGEventHandlerInner* inner;
+
+    CGEventHandler(HotkeyHandlerCallback hkHandler, MouseButtonHandlerCallback mbHandler);
+    ~CGEventHandler();
+
+    void Update();
+    bool SendKey(char32_t chr, uint32_t code, bool down);
+    void SetMousePos(int x, int y);
+    void CursorHide(bool hide);
+};
+
+} // extern "C"
+
+#endif // MAC_NATIVE_H

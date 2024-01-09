@@ -1,10 +1,5 @@
 #include "Application.h"
-
-#ifdef _MSC_VER
-#include "win_native.h"
-#else
-#include "linux_native.h"
-#endif
+#include "native.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"

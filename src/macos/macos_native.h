@@ -7,6 +7,7 @@
 #include <queue>
 
 class AppKit;
+struct CGEventHandler;
 
 class MacOSNative : public Native {
 public:
@@ -33,9 +34,6 @@ public:
     void Update() override;
 
 private:
-    class KeyboardLayout;
-    class CGEventHandler;
-
     struct RegKey {
         uint32_t key, modifier;
     };
@@ -55,8 +53,6 @@ private:
 
     AppKit* app_kit_ = nullptr;
     CGEventHandler* cg_handler = nullptr;
-    KeyboardLayout* keyboard_layout_ = nullptr;
-    std::unordered_map<uint32_t, ScanCodeInfo> scancode_infos_;
     std::unordered_map<uint32_t, RegKey> registered_keys_;
 
     std::queue<MouseButtonEvent> mouse_button_evnets_;

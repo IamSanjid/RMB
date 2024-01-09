@@ -35,22 +35,6 @@ AppKit::~AppKit()
 }
 
 //
-// Add global event monitor
-//
-- (id) addGlobalMonitor:(NSEventMask) mask handler:(void (^)(NSEvent *)) handler
-{
-    return [NSEvent addGlobalMonitorForEventsMatchingMask:mask handler:handler];
-}
-
-//
-// Remove global event monitor
-//
-- (void) removeGlobalMonitor:(id) monitor
-{
-    [NSEvent removeMonitor:monitor];
-}
-
-//
 // Check if accessibility is enabled, may show an popup asking for permissions
 //
 - (bool) enableAccessibility
@@ -109,6 +93,9 @@ AppKit::~AppKit()
     return app && [app activateWithOptions:NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps];
 }
 
+//
+// Gets current cursor coordinates on the screen where the (0, 0) is at the top left corner of the screen
+//
 - (void) getCursorPos:(float*) x y: (float*) y
 {
     const NSPoint mouseLoc = [NSEvent mouseLocation];
@@ -117,6 +104,9 @@ AppKit::~AppKit()
     *y = abs(mouseLoc.y - screenRect.size.height);
 }
 
+//
+// Hides/Unhides the cursor from the screen
+//
 - (void) cursorHide:(bool) hide
 {
     if (hide) 
@@ -129,9 +119,12 @@ AppKit::~AppKit()
     }
 }
 
+//
+// Gets the name and the process id of the current front most(basically current active) application
+//
 - (bool) getForegroundAppInfo:(NativeAppInfo*) result
 {
-    if (!result) 
+    if (!result)
     {
         return false;
     }
@@ -141,27 +134,19 @@ AppKit::~AppKit()
         return false;
     }
     result->pid = rApp.processIdentifier;
-    result->name = rApp.localizedName.UTF8String;
+    if (rApp.localizedName.length > 0) {
+        result->name = strdup(rApp.localizedName.UTF8String);
+        /*int len = rApp.localizedName.count + 1;
+        result->name = malloc(len * sizeof(CChar));
+        result->name[len] = '\0';
+        memcpy(result->name, rApp.localizedName.UTF8String, len);*/
+    }
     return true;
 }
 
 //
 // ------------------------- C++ Trampolines -------------------------
 //
-
-void* AppKit::addGlobalMonitor(CGKeyCode keycode, CGEventFlags modifier, void *userData, void (*handler)(void *))
-{
-    return [static_cast<id>(self) addGlobalMonitor:NSEventMaskKeyDown handler:^(NSEvent *event) {
-        if (event.keyCode == keycode && (event.modifierFlags & modifier) == modifier) {
-            handler(userData);
-        }
-    }];
-}
-
-void AppKit::removeGlobalMonitor(void *monitor)
-{
-    return [static_cast<id>(self) removeGlobalMonitor:static_cast<id>(monitor)];
-}
 
 bool AppKit::enableAccessibility()
 {

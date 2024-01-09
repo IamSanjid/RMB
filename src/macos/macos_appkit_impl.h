@@ -1,5 +1,6 @@
 #import "macos_appkit.h"
 
+#import <CoreGraphics/CGEvent.h>
 #import <Foundation/Foundation.h>
 #import <AppKit/NSEvent.h>
 #import <AppKit/NSRunningApplication.h>
@@ -8,8 +9,6 @@
 
 @property (strong) NSRunningApplication *lastActiveApplication;
 
-- (id) addGlobalMonitor:(NSEventMask) mask handler:(void (^)(NSEvent *)) handler;
-- (void) removeGlobalMonitor:(id) monitor;
 - (bool) enableAccessibility;
 - (pid_t) activeProcessId;
 - (pid_t) ownProcessId;
