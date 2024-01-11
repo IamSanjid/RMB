@@ -21,6 +21,7 @@
 #include "Config.h"
 #include "Utils.h"
 #include "mouse.h"
+#include "keyboard_manager.h"
 #include "npad_controller.h"
 #include "views/MainView.h"
 
@@ -34,7 +35,7 @@ std::unique_ptr<Application> Application::Create() {
     auto app = std::make_unique<Application>();
     if (app->Initialize(Config::Current()->NAME, Config::Current()->WIDTH,
                         Config::Current()->HEIGHT)) {
-        return std::move(app);
+        return app;
     }
     return nullptr;
 }
@@ -223,6 +224,8 @@ void Application::Reconfig(Config* new_conf) {
         current_config->RIGHT_MOUSE_KEY = glfwGetKeyScancode(current_config->RIGHT_MOUSE_KEY);
     if (current_config->MIDDLE_MOUSE_KEY)
         current_config->MIDDLE_MOUSE_KEY = glfwGetKeyScancode(current_config->MIDDLE_MOUSE_KEY);
+
+    KeyboardManager::GetInstance()->SetPersistentMode(current_config->PERSISTANT_KEY_PRESS);
 }
 
 void Application::TogglePanning() {
@@ -261,7 +264,6 @@ void Application::DetectMouseMove() {
     if (Config::Current()->HIDE_MOUSE) {
         UpdateMouseVisibility();
     }
-    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void Application::OnHotkey(HotkeyEvent& evt) {
@@ -297,7 +299,6 @@ void Application::OnMouseButton(MouseButtonEvent& evt) {
         key = Config::Current()->MIDDLE_MOUSE_KEY;
         break;
     }
-
     if (key) {
         const std::string& target_window_name = Config::Current()->TARGET_NAME;
         auto app = Application::GetInstance();
@@ -313,7 +314,9 @@ void Application::OnMouseButton(MouseButtonEvent& evt) {
                 Native::GetInstance()->SetFocusOnWindow(last_window);
                 last_key = 0;
             }
-            return;
+            if (evt.is_pressed) {
+                return;
+            }
         }
         app->controller_->SetButton(key, evt.is_pressed);
         last_key = key;

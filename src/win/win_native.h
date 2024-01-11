@@ -20,6 +20,8 @@ public:
     void UnregisterHotKey(uint32_t key, uint32_t modifier) override;
     void SendKeysDown(uint32_t* keys, size_t count) override;
     void SendKeysUp(uint32_t* keys, size_t count) override;
+    void SendKeysBitsetDown(const KeysBitset& key_map) override;
+    void SendKeysBitsetUp(const KeysBitset& key_map) override;
     void SetMousePos(int x, int y) override;
     void GetMousePos(int* x_ret, int* y_ret) override;
     NativeWindow GetFocusedWindow() override;

@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <bitset>
 
 #include "EventSystem.h"
 
@@ -41,6 +42,9 @@ using NativeWindow = unsigned long;
 #endif
 #endif
 
+static const size_t MAX_KEYBOARD_SCAN_CODE = 0xff;
+using KeysBitset = std::bitset<MAX_KEYBOARD_SCAN_CODE>;
+
 class Native {
 public:
     Native(){};
@@ -55,6 +59,8 @@ public:
     virtual void UnregisterHotKey(uint32_t key, uint32_t modifier) = 0;
     virtual void SendKeysDown(uint32_t* keys, size_t count) = 0;
     virtual void SendKeysUp(uint32_t* keys, size_t count) = 0;
+    virtual void SendKeysBitsetDown(const KeysBitset& key_map) = 0;
+    virtual void SendKeysBitsetUp(const KeysBitset& key_map) = 0;
     /* (0, 0) should be at the top left corner of the main monitor/screen */
     virtual void SetMousePos(int x, int y) = 0;
     virtual void GetMousePos(int* x_ret, int* y_ret) = 0;

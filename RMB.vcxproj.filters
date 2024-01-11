@@ -36,6 +36,7 @@
     <ClCompile Include="src\mouse.cpp" />
     <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\npad_controller.cpp" />
+    <ClCompile Include="src\keyboard_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="externals\imgui\imgui_internal.h">
@@ -97,6 +98,7 @@
     <ClInclude Include="src\mouse.h" />
     <ClInclude Include="src\Config.h" />
     <ClInclude Include="src\npad_controller.h" />
+    <ClInclude Include="src\keyboard_manager.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">

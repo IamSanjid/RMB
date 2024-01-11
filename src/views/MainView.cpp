@@ -6,9 +6,10 @@
 
 #include <GLFW/glfw3.h>
 
-#include "../Application.h"
-#include "../Config.h"
-#include "../native.h"
+#include "Application.h"
+#include "Config.h"
+#include "native.h"
+#include "keyboard_manager.h"
 
 const char* INI_FILE = "RMB.ini";
 
@@ -181,6 +182,10 @@ void MainView::Show() {
     ImGui::Checkbox("Bind Mouse Buttons", &current_config->BIND_MOUSE_BUTTON);
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Enable binding mouse buttons to keyboard keys.");
+    if (ImGui::Checkbox("Persistant Key Press", &current_config->PERSISTANT_KEY_PRESS))
+        KeyboardManager::GetInstance()->SetPersistentMode(current_config->PERSISTANT_KEY_PRESS);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Continiously presses keys, might be useful\nfor some emulators.");
 
     ImGui::Text("Sensitivity(%%):");
     if (ImGui::InputFloat("##sensitivity", &current_config->SENSITIVITY, 0.5f, 3.5f, "%0.3f")) {
@@ -199,15 +204,8 @@ void MainView::Show() {
     /* configure input keys */
     auto window_size = ImGui::GetWindowSize();
     float width = window_size.x * 0.47f;
-    float height = window_size.y * 0.385f;
+    float height = window_size.y * 0.360f;
     float delta_width = width * 0.5f;
-
-    ImGui::Button("Configure Input");
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Configure Keyboard Keys to match with your Emulator\nconfiguration and "
-                          "bind mouse buttons with other\nkeyboard keys.");
-
-    ImGui::SameLine();
 
     if (ImGui::Button("Default")) {
         selected_keys_.clear();
@@ -223,7 +221,14 @@ void MainView::Show() {
 
     ImGui::SameLine(0.f, 26.55f);
 
-    ImGui::Button("Analog Properties");
+    ImGui::Text("Configure Inputs");
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Configure Keyboard Keys to match with your Emulator\nconfiguration and "
+                          "bind mouse buttons with other\nkeyboard keys.");
+
+    ImGui::SameLine(0.f, 60.f + 26.f);
+
+    ImGui::Text("Analog Properties");
 
     ImGui::BeginChild("conf_input", ImVec2(width, height), true,
                       ImGuiWindowFlags_HorizontalScrollbar);

@@ -25,6 +25,7 @@ Config::Config() {
     HIDE_MOUSE = true;
     AUTO_FOCUS_EMU_WINDOW = true;
     BIND_MOUSE_BUTTON = true;
+    PERSISTANT_KEY_PRESS = false;
 }
 
 Config* Config::New() {
@@ -68,6 +69,8 @@ Config* Config::LoadNew(const std::string& file) {
         ft.GetValue("AutoFocusEmuWindow", current_conf->AUTO_FOCUS_EMU_WINDOW).AsBool();
     new_conf->BIND_MOUSE_BUTTON =
         ft.GetValue("BindMouseButton", current_conf->BIND_MOUSE_BUTTON).AsBool();
+    new_conf->PERSISTANT_KEY_PRESS =
+        ft.GetValue("PersistantKeyPress", current_conf->PERSISTANT_KEY_PRESS).AsBool();
 
     new_conf->DEADZONE =
         ft.GetValue("AnalogProperties:DeadZone", current_conf->DEADZONE).AsT<float>();
@@ -109,6 +112,7 @@ void Config::Save(const std::string& file) {
     ft.SetValue("HideMouse", this->HIDE_MOUSE);
     ft.SetValue("AutoFocusEmuWindow", this->AUTO_FOCUS_EMU_WINDOW);
     ft.SetValue("BindMouseButton", this->BIND_MOUSE_BUTTON);
+    ft.SetValue("PersistantKeyPress", this->PERSISTANT_KEY_PRESS);
 
     ft.SetValue("AnalogProperties:DeadZone", this->DEADZONE);
     ft.SetValue("AnalogProperties:Range", this->RANGE);

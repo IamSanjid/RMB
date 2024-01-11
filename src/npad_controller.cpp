@@ -8,7 +8,7 @@
 #include "Config.h"
 #include "Utils.h"
 #include "concurrentqueue.h"
-#include "native.h"
+#include "keyboard_manager.h"
 
 constexpr int BUTTONS = 4;
 
@@ -47,12 +47,11 @@ public:
                 }
 
                 if (timeout.time == 0) {
-                    Native::GetInstance()->SendKeysUp(&config->RIGHT_STICK_KEYS[timeout.button], 1);
+                    KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[timeout.button]);
                     timeouts_[timeout.button] = 0;
                 }
                 else if (timeouts_[timeout.button] == 0) {
-                    Native::GetInstance()->SendKeysDown(&config->RIGHT_STICK_KEYS[timeout.button],
-                                                        1);
+                    KeyboardManager::GetInstance()->SendKeyDown(config->RIGHT_STICK_KEYS[timeout.button]);
                     timeouts_[timeout.button] = timeout.time;
                 }
 
@@ -65,6 +64,7 @@ public:
         if (clear_) [[unlikely]] {
             return;
         }
+        auto config = Config::Current();
 
         auto value_x = status.x;
         auto value_y = status.y;
@@ -80,15 +80,43 @@ public:
         auto button_y = (1 * 2) + (Utils::sign(value_y) > 0);
         auto opposite_button_y = 5 - button_y;
 
-        ButtonTimeout timeouts[BUTTONS]{};
+        if (new_time_x == 0) {
+            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[button_x]);
+        }
+        else if (timeouts_[button_x] == 0) {
+            KeyboardManager::GetInstance()->SendKeyDown(config->RIGHT_STICK_KEYS[button_x]);
+        }
 
-        bool prioritize_y = new_time_y > new_time_x && new_time_x > 0;
+        if (timeouts_[opposite_button_x])
+            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_x]);
+
+        if (new_time_y == 0) {
+            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[button_y]);
+        }
+        else if (timeouts_[button_y] == 0) {
+            KeyboardManager::GetInstance()->SendKeyDown(config->RIGHT_STICK_KEYS[button_y]);
+        }
+
+        if (timeouts_[opposite_button_y])
+            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_y]);
+
+        timeouts_[opposite_button_x] = 0;
+        timeouts_[opposite_button_y] = 0;
+        timeouts_[button_x] = new_time_x;
+        timeouts_[button_y] = new_time_y;
+
+        //KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_x]);
+        //KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_y]);
+
+        /*ButtonTimeout timeouts[BUTTONS]{};
+        // try hard way to reduce if-else blocks...
+        bool prioritize_y = new_time_x > 0 && new_time_y > new_time_x;
         timeouts[(prioritize_y * 2)] = {button_x, new_time_x};
         timeouts[(prioritize_y * 2) + 1] = {opposite_button_x, 0};
         timeouts[(prioritize_y ^ 1) * 2] = {button_y, new_time_y};
         timeouts[((prioritize_y ^ 1) * 2) + 1] = {opposite_button_y, 0};
 
-        timeout_queue_.enqueue_bulk(prod_token_, timeouts, BUTTONS);
+        timeout_queue_.enqueue_bulk(prod_token_, timeouts, BUTTONS);*/
     }
 
     void OnStop() {
@@ -124,7 +152,7 @@ private:
     };
 
     bool clear_ = false;
-    uint32_t timeouts_[BUTTONS]{};
+    uint32_t timeouts_[BUTTONS]{0};
 
     moodycamel::ConcurrentQueue<ButtonTimeout> timeout_queue_{};
     /* single-producer-single-consumer case, so it's safe. */
@@ -134,19 +162,14 @@ private:
 class ButtonInputHandler {
 public:
     inline void OnChange(const ButtonStatus& status) {
-        if (status.reset) {
-            Native::GetInstance()->SendKeysUp((uint32_t*)&status.button, 1);
-        }
-        else {
-            Native::GetInstance()->SendKeysDown((uint32_t*)&status.button, 1);
-        }
+        
         std::scoped_lock<std::mutex> lock{mutex};
         pressed_buttons_[status.button] = !status.reset;
     }
 
     inline void OnStop() {
         std::scoped_lock<std::mutex> lock{mutex};
-        for (uint32_t i = 0; i < 256; i++) {
+        for (uint32_t i = 0; i < MAX_KEYBOARD_SCAN_CODE; i++) {
             if (pressed_buttons_[i]) {
                 Native::GetInstance()->SendKeysUp(&i, 1);
             }
@@ -155,24 +178,17 @@ public:
     }
 
 private:
-    std::bitset<256> pressed_buttons_{};
+    KeysBitset pressed_buttons_{};
     mutable std::mutex mutex{};
 };
 
 NpadController::NpadController()
-    : stick_handler_(new StickInputHandler()), button_input_handler_(new ButtonInputHandler()) {
-    update_thread = std::jthread([this](std::stop_token stop_token) { UpdateThread(stop_token); });
+    : stick_handler_(new StickInputHandler()) {
 }
 
-void NpadController::UpdateThread(std::stop_token stop_token) {
-    while (!stop_token.stop_requested()) {
-        stick_handler_->OnUpdate();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-
+NpadController::~NpadController() {
     ClearState();
     delete stick_handler_;
-    delete button_input_handler_;
 
     fprintf(stdout, "Exiting Controller.\n");
 }
@@ -192,8 +208,8 @@ void NpadController::SetStick(float raw_x, float raw_y) {
 
     SanatizeAxes(last_raw_x_, last_raw_y_, true);
 
-    auto new_x = std::roundf(last_x_ * HID_JOYSTICK_MAX);
-    auto new_y = std::roundf(last_y_ * HID_JOYSTICK_MAX);
+    auto new_x = std::roundf(last_x_ * static_cast<float>(HID_JOYSTICK_MAX));
+    auto new_y = std::roundf(last_y_ * static_cast<float>(HID_JOYSTICK_MAX));
 
     stick_handler_->OnChange({static_cast<int32_t>(new_x), static_cast<int32_t>(new_y)});
 
@@ -212,15 +228,19 @@ void NpadController::SetStick(float raw_x, float raw_y) {
 }
 
 void NpadController::SetButton(uint32_t button, int value) {
-    button_input_handler_->OnChange({value == 0, button});
+    if (value) {
+        KeyboardManager::GetInstance()->SendKeyDown(button);
+    }
+    else {
+        KeyboardManager::GetInstance()->SendKeyUp(button);
+    }
 }
 
 void NpadController::ClearState() {
     last_raw_x_ = last_raw_y_ = last_x_ = last_y_ = 0.f;
     axes_ = {};
 
-    stick_handler_->OnStop();
-    button_input_handler_->OnStop();
+    KeyboardManager::GetInstance()->Clear();
 }
 
 void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value) {

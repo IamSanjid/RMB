@@ -46,10 +46,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\windows-$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\windows-$(Platform)\objs\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\windows-$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\windows-$(Platform)\objs\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -108,6 +110,7 @@
     <ClCompile Include="externals\imgui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\keyboard_manager.cpp" />
     <ClCompile Include="src\npad_controller.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mouse.cpp" />
@@ -129,6 +132,7 @@
     <ClInclude Include="externals\imgui\backends\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\Config.h" />
+    <ClInclude Include="src\keyboard_manager.h" />
     <ClInclude Include="src\npad_controller.h" />
     <ClInclude Include="src\mouse.h" />
     <ClInclude Include="src\native.h" />
