@@ -34,33 +34,40 @@ void KeyboardManager::UpdateThread(std::stop_token stop_token) {
 
         if (clear_requested_.load(std::memory_order_acquire)) {
             ClearDownKeys();
-            continue;
+            goto end_frame;
         }
-
-        do {
-            keys_cnt = down_keys_queue_.try_dequeue_bulk(keys, max_dequeue_items);
-            if (keys_cnt) {
-                for (size_t i = 0; i < keys_cnt; i++) {
-                    Native::GetInstance()->SendKeysBitsetDown(keys[i]);
-                    down_keys_in_ |= keys[i];
+        {
+            bool sent_updates = false;
+            do {
+                keys_cnt = down_keys_queue_.try_dequeue_bulk(keys, max_dequeue_items);
+                if (keys_cnt) {
+                    for (size_t i = 0; i < keys_cnt; i++) {
+                        Native::GetInstance()->SendKeysBitsetDown(keys[i]);
+                        down_keys_in_ |= keys[i];
+                    }
+                    sent_updates = true;
                 }
-            }
-        } while (keys_cnt != 0);
+            } while (keys_cnt != 0);
 
-        do {
-            keys_cnt = up_keys_queue_.try_dequeue_bulk(keys, max_dequeue_items);
-            if (keys_cnt) {
-                for (size_t i = 0; i < keys_cnt; i++) {
-                    Native::GetInstance()->SendKeysBitsetUp(keys[i]);
-                    down_keys_in_ &= ~(keys[i]);
+            do {
+                keys_cnt = up_keys_queue_.try_dequeue_bulk(keys, max_dequeue_items);
+                if (keys_cnt) {
+                    for (size_t i = 0; i < keys_cnt; i++) {
+                        Native::GetInstance()->SendKeysBitsetUp(keys[i]);
+                        down_keys_in_ &= ~(keys[i]);
+                    }
                 }
-            }
-        } while (keys_cnt != 0);
+            } while (keys_cnt != 0);
+
+            if (sent_updates)
+                goto end_frame;
+        }
 
         if (persistent_mode_.load(std::memory_order_acquire)) {
             Native::GetInstance()->SendKeysBitsetDown(down_keys_in_);
         }
 
+    end_frame:
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     ClearDownKeys();

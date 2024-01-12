@@ -42,7 +42,7 @@ using NativeWindow = unsigned long;
 #endif
 #endif
 
-static const size_t MAX_KEYBOARD_SCAN_CODE = 0xff;
+static constexpr size_t MAX_KEYBOARD_SCAN_CODE = 0xff;
 using KeysBitset = std::bitset<MAX_KEYBOARD_SCAN_CODE>;
 
 class Native {
