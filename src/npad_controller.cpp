@@ -7,7 +7,6 @@
 #include "Application.h"
 #include "Config.h"
 #include "Utils.h"
-#include "concurrentqueue.h"
 #include "keyboard_manager.h"
 
 constexpr int BUTTONS = 4;
@@ -26,44 +25,7 @@ struct ButtonStatus {
 
 class StickInputHandler {
 public:
-    StickInputHandler() : prod_token_(timeout_queue_){};
-
-    void OnUpdate() {
-        auto config = Config::Current();
-
-        constexpr int max_timeouts_to_dequeue = BUTTONS * 2;
-        size_t timeouts_cnt = 0;
-        ButtonTimeout timeouts[max_timeouts_to_dequeue];
-
-        do {
-            timeouts_cnt = timeout_queue_.try_dequeue_bulk_from_producer(prod_token_, timeouts,
-                                                                         max_timeouts_to_dequeue);
-            for (size_t i = 0; i < timeouts_cnt; i++) {
-                auto& timeout = timeouts[i];
-                if (timeout.button == -1) [[unlikely]] {
-                    clear_ = true;
-                    Clear();
-                    return;
-                }
-
-                if (timeout.time == 0) {
-                    KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[timeout.button]);
-                    timeouts_[timeout.button] = 0;
-                }
-                else if (timeouts_[timeout.button] == 0) {
-                    KeyboardManager::GetInstance()->SendKeyDown(config->RIGHT_STICK_KEYS[timeout.button]);
-                    timeouts_[timeout.button] = timeout.time;
-                }
-
-                DEBUG_OUT("button: %d, time: %d\n", timeout.button, timeout.time);
-            }
-        } while (timeouts_cnt != 0);
-    }
-
     inline void OnChange(const StickStatus& status) {
-        if (clear_) [[unlikely]] {
-            return;
-        }
         auto config = Config::Current();
 
         auto value_x = status.x;
@@ -104,82 +66,14 @@ public:
         timeouts_[opposite_button_y] = 0;
         timeouts_[button_x] = new_time_x;
         timeouts_[button_y] = new_time_y;
-
-        //KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_x]);
-        //KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_y]);
-
-        /*ButtonTimeout timeouts[BUTTONS]{};
-        // try hard way to reduce if-else blocks...
-        bool prioritize_y = new_time_x > 0 && new_time_y > new_time_x;
-        timeouts[(prioritize_y * 2)] = {button_x, new_time_x};
-        timeouts[(prioritize_y * 2) + 1] = {opposite_button_x, 0};
-        timeouts[(prioritize_y ^ 1) * 2] = {button_y, new_time_y};
-        timeouts[((prioritize_y ^ 1) * 2) + 1] = {opposite_button_y, 0};
-
-        timeout_queue_.enqueue_bulk(prod_token_, timeouts, BUTTONS);*/
     }
 
-    void OnStop() {
-        timeout_queue_.enqueue({-1, 0});
-    }
-
-private:
     inline void Clear() {
-        auto config = Config::Current();
-
-        constexpr int max_timeouts_to_dequeue = BUTTONS * 2;
-        size_t timeouts_cnt = 0;
-        ButtonTimeout timeouts[max_timeouts_to_dequeue];
-
-        for (int i = 0; i < BUTTONS; i++) {
-            if (timeouts_[i] != 0) {
-                Native::GetInstance()->SendKeysUp(&config->RIGHT_STICK_KEYS[i], 1);
-            }
-            timeouts_[i] = 0;
-        }
-
-        do {
-            timeouts_cnt = timeout_queue_.try_dequeue_bulk(timeouts, max_timeouts_to_dequeue);
-        } while (timeouts_cnt != 0);
-
-        clear_ = false;
+        memset(timeouts_, 0, sizeof(uint32_t) * BUTTONS);
     }
-
+    
 private:
-    struct ButtonTimeout {
-        int button;
-        uint32_t time;
-    };
-
-    bool clear_ = false;
     uint32_t timeouts_[BUTTONS]{0};
-
-    moodycamel::ConcurrentQueue<ButtonTimeout> timeout_queue_{};
-    /* single-producer-single-consumer case, so it's safe. */
-    moodycamel::ProducerToken prod_token_;
-};
-
-class ButtonInputHandler {
-public:
-    inline void OnChange(const ButtonStatus& status) {
-        
-        std::scoped_lock<std::mutex> lock{mutex};
-        pressed_buttons_[status.button] = !status.reset;
-    }
-
-    inline void OnStop() {
-        std::scoped_lock<std::mutex> lock{mutex};
-        for (uint32_t i = 0; i < MAX_KEYBOARD_SCAN_CODE; i++) {
-            if (pressed_buttons_[i]) {
-                Native::GetInstance()->SendKeysUp(&i, 1);
-            }
-        }
-        pressed_buttons_.reset();
-    }
-
-private:
-    KeysBitset pressed_buttons_{};
-    mutable std::mutex mutex{};
 };
 
 NpadController::NpadController()
@@ -236,10 +130,15 @@ void NpadController::SetButton(uint32_t button, int value) {
     }
 }
 
+void NpadController::SetPersistentMode(bool value) {
+    KeyboardManager::GetInstance()->SetPersistentMode(value);
+}
+
 void NpadController::ClearState() {
     last_raw_x_ = last_raw_y_ = last_x_ = last_y_ = 0.f;
     axes_ = {};
 
+    stick_handler_->Clear();
     KeyboardManager::GetInstance()->Clear();
 }
 

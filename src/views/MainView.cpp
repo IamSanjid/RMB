@@ -9,7 +9,7 @@
 #include "Application.h"
 #include "Config.h"
 #include "native.h"
-#include "keyboard_manager.h"
+#include "npad_controller.h"
 
 const char* INI_FILE = "RMB.ini";
 
@@ -182,8 +182,10 @@ void MainView::Show() {
     ImGui::Checkbox("Bind Mouse Buttons", &current_config->BIND_MOUSE_BUTTON);
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Enable binding mouse buttons to keyboard keys.");
-    if (ImGui::Checkbox("Persistant Key Press", &current_config->PERSISTANT_KEY_PRESS))
-        KeyboardManager::GetInstance()->SetPersistentMode(current_config->PERSISTANT_KEY_PRESS);
+    if (ImGui::Checkbox("Persistant Key Press", &current_config->PERSISTANT_KEY_PRESS)) {
+        Application::GetInstance()->GetController()->SetPersistentMode(
+            current_config->PERSISTANT_KEY_PRESS);
+    }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Continiously presses keys, might be useful\nfor some emulators.");
 

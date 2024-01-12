@@ -11,6 +11,7 @@ KeyboardManager::KeyboardManager() {
 
 KeyboardManager::~KeyboardManager() {
     update_thread_.request_stop();
+    ClearDownKeys();
 }
 
 void KeyboardManager::SetPersistentMode(bool value) {

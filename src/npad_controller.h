@@ -1,7 +1,5 @@
 #pragma once
 #include <mutex>
-#include <thread>
-#include <vector>
 
 struct Axes {
     float x;
@@ -22,6 +20,7 @@ public:
 
     void SetStick(float raw_x, float raw_y);
     void SetButton(uint32_t button, int value);
+    void SetPersistentMode(bool value);
     void ClearState();
 
 private:

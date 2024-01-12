@@ -2,7 +2,6 @@
 
 #include "native.h"
 #include "concurrentqueue.h"
-#include <unordered_set>
 
 class KeyboardManager {
 public:
