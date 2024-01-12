@@ -58,9 +58,10 @@ Output directory: `build/RMB/(Debug|Release)/(platform-x64)/RMB(.exe if windows)
 * For other OSs/Platforms you need to implement all these stuff listed [here](#for-other-platforms). You also going to need GLFW 3.3+ lib for the corresponding platform/os.
 
 # macOS(Experimental) Build
+*After some testing with [@VladimirProg](https://github.com/VladimirProg) or @prog_11765(discord) help the build seems to be stable and the performance seems to be quit okay, so it's safe to use for now.*<br>
+<br>
 After some requests for macOS support here we are.<br>
 Haven't tested properly at all(Can't test in a real environment, don't own a mac device).<br>
-After some testing with @VladimirProg or @prog_11765(discord) help the build seems to be stable and the performance seems to be quit okay, so it's safe to use for now.<br>
 Apple's clang doesn't support c++ 20's `jthread` so came up with some weird solution so that it at least builds and checksout basic usage.<br>
 It will definately become easier and better when they decides to support it :).<br>
 The follwing steps worked on Ventura 13.0.0 should be fine till macOS 12.0 and later versions.
