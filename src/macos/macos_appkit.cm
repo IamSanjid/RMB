@@ -346,8 +346,9 @@ bool CGEventHandler::SendKey(char32_t chr, uint32_t code, bool down)
 
 void CGEventHandler::SetMousePos(int x, int y)
 {
-    CGDisplayMoveCursorToPoint(CGMainDisplayID(), {.x = (float)x,
-                                                   .y = (float)y});
+    CGPoint warpPoint = CGPointMake(x, y);
+    CGWarpMouseCursorPosition(warpPoint);
+    CGAssociateMouseAndMouseCursorPosition(true);
 }
 
 void CGEventHandler::CursorHide(bool hide)

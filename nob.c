@@ -1,4 +1,4 @@
-//#define _NOB_TEST
+// #define _NOB_TEST
 
 #define NOB_IMPLEMENTATION
 #include ".nob/nob.h"
@@ -430,6 +430,8 @@ int external_glfw_build(const void* this_ptr) {
     };
 
     nob_cmd_append(&cmd, "-D_GLFW_COCOA");
+    // Note: We're cross-linking clang compiled objects with gnu linker, please be cautious.
+    nob_cmd_append(&cmd, "-Wno-unknown-warning-option", "-Wno-unused-command-line-argument");
 #else
     static const char* platform_specific_sources[] = {
         "src/x11_init.c",       "src/x11_monitor.c",   "src/x11_window.c",  "src/xkb_unicode.c",
@@ -563,6 +565,8 @@ int external_imgui_build(const void* this_ptr) {
     nob_cmd_append(&cmd, "-W4", "-std:c++20");
 #else // _WIN32
 #if defined(__APPLE__) || defined(__MACH__)
+    // Note: We're cross-linking clang compiled objects with gnu linker, please be cautious.
+    nob_cmd_append(&cmd, "-Wno-unknown-warning-option", "-Wno-unused-command-line-argument");
 #else  // MACOS
 #endif // LINUX
     nob_cmd_append(&cmd, "-Wall", "-std=c++20");
@@ -952,6 +956,7 @@ int build_main() {
     nob_log(NOB_INFO, "Compiling Objective-c/cpp files...");
     // It would've been nice if we could partially create/edit current cmd bucket/arg list...
     size_t cmd_checkpoint = cmd.count;
+    // Note: We're cross-linking clang compiled objects with gnu linker, please be cautious.
     nob_cmd_append(&cmd, "-Wno-unknown-warning-option", "-Wno-unused-command-line-argument");
 
     static const char* obj_c_exts[] = {".m", ".mm"};
