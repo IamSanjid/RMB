@@ -69,7 +69,7 @@ void KeyboardManager::UpdateThread(std::stop_token stop_token) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     ClearDownKeys();
-    fprintf(stdout, "Exiting keyboard manager...");
+    fprintf(stdout, "Exiting keyboard manager...\n");
 }
 
 void KeyboardManager::ClearDownKeys() {
