@@ -1,5 +1,9 @@
 #include "keyboard_manager.h"
 
+#ifndef _WIN32
+#include <string.h>
+#endif
+
 std::shared_ptr<KeyboardManager> KeyboardManager::GetInstance() {
     static std::shared_ptr<KeyboardManager> singleton_(new KeyboardManager());
     return singleton_;

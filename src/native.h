@@ -59,8 +59,37 @@ public:
     virtual void UnregisterHotKey(uint32_t key, uint32_t modifier) = 0;
     virtual void SendKeysDown(uint32_t* keys, size_t count) = 0;
     virtual void SendKeysUp(uint32_t* keys, size_t count) = 0;
-    virtual void SendKeysBitsetDown(const KeysBitset& key_map) = 0;
-    virtual void SendKeysBitsetUp(const KeysBitset& key_map) = 0;
+    inline void SendKeysBitsetDown(const KeysBitset& key_map) {
+        const size_t count = key_map.count();
+        if (count == 0) {
+            return;
+        }
+        uint32_t keys[MAX_KEYBOARD_SCAN_CODE]{};
+        size_t curr_inp_idx = 0;
+        // iterting over 0xff items is super fast
+        for (uint32_t i = 0; i < MAX_KEYBOARD_SCAN_CODE; i++) {
+            if (key_map[i]) {
+                keys[curr_inp_idx++] = i;
+            }
+        }
+        SendKeysDown(keys, curr_inp_idx);
+    }
+    inline void SendKeysBitsetUp(const KeysBitset& key_map) {
+        const size_t count = key_map.count();
+        if (count == 0) {
+            return;
+        }
+        uint32_t keys[MAX_KEYBOARD_SCAN_CODE]{};
+        size_t curr_inp_idx = 0;
+        // iterting over 0xff items is super fast
+        for (uint32_t i = 0; i < MAX_KEYBOARD_SCAN_CODE; i++) {
+            if (key_map[i]) {
+                keys[curr_inp_idx] = i;
+                curr_inp_idx++;
+            }
+        }
+        SendKeysUp(keys, curr_inp_idx);
+    }
     /* (0, 0) should be at the top left corner of the main monitor/screen */
     virtual void SetMousePos(int x, int y) = 0;
     virtual void GetMousePos(int* x_ret, int* y_ret) = 0;

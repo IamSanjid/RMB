@@ -126,50 +126,6 @@ void WinNative::SendKeysUp(uint32_t* keys, size_t count) {
     SendInput((UINT)count, &input[0], sizeof(INPUT));
 }
 
-void WinNative::SendKeysBitsetDown(const KeysBitset& key_map) {
-    const size_t count = key_map.count();
-    if (count == 0) {
-        return;
-    }
-    std::vector<INPUT> input(count);
-    std::fill(input.begin(), input.end(), INPUT{});
-    // iterting over 0xff items is super fast
-    size_t curr_inp_idx = 0;
-    for (size_t i = 0; i < MAX_KEYBOARD_SCAN_CODE; i++) {
-        if (key_map[i]) {
-            auto ch = (WORD)i;
-            input[curr_inp_idx].type = INPUT_KEYBOARD;
-            input[curr_inp_idx].ki.dwFlags = KEYEVENTF_SCANCODE;
-            input[curr_inp_idx].ki.wScan = ch;
-            curr_inp_idx++;
-        }
-    }
-
-    SendInput((UINT)count, &input[0], sizeof(INPUT));
-}
-
-void WinNative::SendKeysBitsetUp(const KeysBitset& key_map) {
-    const size_t count = key_map.count();
-    if (count == 0) {
-        return;
-    }
-    std::vector<INPUT> input(count);
-    std::fill(input.begin(), input.end(), INPUT{});
-    // iterting over 0xff items is super fast
-    size_t curr_inp_idx = 0;
-    for (size_t i = 0; i < MAX_KEYBOARD_SCAN_CODE; i++) {
-        if (key_map[i]) {
-            auto ch = (WORD)i;
-            input[curr_inp_idx].type = INPUT_KEYBOARD;
-            input[curr_inp_idx].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-            input[curr_inp_idx].ki.wScan = ch;
-            curr_inp_idx++;
-        }
-    }
-
-    SendInput((UINT)count, &input[0], sizeof(INPUT));
-}
-
 void WinNative::SetMousePos(int x, int y) {
     ::SetCursorPos(x, y);
 }

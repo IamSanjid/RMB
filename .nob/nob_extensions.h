@@ -259,6 +259,10 @@ bool nob_cmd_run_sync_with_output(Nob_Cmd cmd, Nob_String_Builder* o_sb, EXIT_CO
         close(pipe_fds[1]);
 
         if (execvp(cmd.items[0], (char * const*) cmd_null.items) < 0) {
+            if (errno == ENOENT) {
+                // we exit with 127 cmd not found error
+                exit(127);
+            }
             nob_log(NOB_ERROR, "Could not exec child process: %s", strerror(errno));
             exit(1);
         }
@@ -371,6 +375,10 @@ bool nob_cmd_run_sync_silently(Nob_Cmd cmd, EXIT_CODE_TYPE* exit_code) {
         close(STDERR_FILENO);
 
         if (execvp(cmd.items[0], (char * const*) cmd_null.items) < 0) {
+            if (errno == ENOENT) {
+                // we exit with 127 cmd not found error
+                exit(127);
+            }
             nob_log(NOB_ERROR, "Could not exec child process: %s", strerror(errno));
             exit(1);
         }

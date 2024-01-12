@@ -9,6 +9,10 @@
 #include "Utils.h"
 #include "keyboard_manager.h"
 
+#ifndef _WIN32
+#include <string.h>
+#endif
+
 constexpr int BUTTONS = 4;
 
 constexpr int32_t HID_JOYSTICK_MAX = 0x7fff;
