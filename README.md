@@ -60,14 +60,15 @@ Output directory: `build/RMB/(Debug|Release)/(platform-x64)/RMB(.exe if windows)
 # macOS(Experimental) Build
 After some requests for macOS support here we are.<br>
 Haven't tested properly at all(Can't test in a real environment, don't own a mac device).<br>
+After some testing with @VladimirProg or @prog_11765(discord) help the build seems to be stable and the performance seems to be quit okay, so it's safe to use for now.<br>
 Apple's clang doesn't support c++ 20's `jthread` so came up with some weird solution so that it at least builds and checksout basic usage.<br>
 It will definately become easier and better when they decides to support it :).<br>
 The follwing steps worked on Ventura 13.0.0 should be fine till macOS 12.0 and later versions.
   - Need [HomeBrew](https://brew.sh/)
   - Make sure everything is fine by running `cc --version` you should see some version output. If not then [HomeBrew](https://brew.sh/) was not installed successfully, try again.
-  - `brew install gcc`
+  - `brew install gcc` - need GCC version 10+
     - why `gcc` even after Apple stopped supporting it? Well to support c++ 20's `jthread`.
-    - Run: `g++ --version`(this is gcc's c++ compiler), if you see some output containing `clang`(which is aliased as `g++` by default) then please [WATCH THIS VIDEO](https://youtu.be/0z-fCNNqfEg?t=168).
+    - (Optional) If the build fails with some header file missing then, run: `g++ --version`(this is gcc's c++ compiler), if you see some output containing `clang`(which is aliased as `g++` by default) then please [WATCH THIS VIDEO](https://youtu.be/0z-fCNNqfEg?t=168).
   - Run: `git clone --depth=1 https://github.com/IamSanjid/RMB.git && cd RMB`
   - Run: `cc -o nob nob.c && ./nob` should succeed with some compiler warnings most of them are safe to ignore.
   - Confirm by running `build/RMB/Release/macos-x64/RMB`, it will ask for accessibility permissions allow those from System Preference.
