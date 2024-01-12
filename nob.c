@@ -1044,15 +1044,14 @@ int build_main() {
         for (size_t i = 0; i < library_dirs.count; i++) {
             nob_cmd_append(&cmd, nob_temp_sprintf("-L%s", library_dirs.items[i]));
         }
-        nob_cmd_append(&cmd, "-lm", "-ldl", "-lpthread", "-lc++", "-lSystem");
         nob_cmd_append(&cmd, "-framework", "OpenGL", "-framework", "Cocoa", "-framework", "IOKit",
                        "-framework", "Foundation", "-framework", "AppKit");
         nob_cmd_append(&cmd, "-framework", "Carbon", "-framework", "ApplicationServices");
         nob_cmd_append(&cmd, nob_temp_sprintf("-Wl,-platform_version,%s", os_version_str));
 #else  // MACOS
-        nob_cmd_append(&cmd, "-lGL", "-lX11", "-lXi", "-lXfixes", "-lXtst", "-lm", "-lpthread",
-                       "-ldl");
+        nob_cmd_append(&cmd, "-lGL", "-lX11", "-lXi", "-lXfixes", "-lXtst");
 #endif // LINUX
+        nob_cmd_append(&cmd, "-lm", "-ldl", "-lpthread");
         if (!nob_cmd_run_sync(cmd))
             nob_return_defer(false);
     }

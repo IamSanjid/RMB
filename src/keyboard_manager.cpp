@@ -15,7 +15,6 @@ KeyboardManager::KeyboardManager() {
 
 KeyboardManager::~KeyboardManager() {
     update_thread_.request_stop();
-    ClearDownKeys();
 }
 
 void KeyboardManager::SetPersistentMode(bool value) {
@@ -31,12 +30,10 @@ void KeyboardManager::UpdateThread(std::stop_token stop_token) {
     KeysBitset keys[max_dequeue_items]{};
 
     while (!stop_token.stop_requested()) {
-        bool updated_down_keys = false;
         size_t keys_cnt = 0;
 
         if (clear_requested_.load(std::memory_order_acquire)) {
             ClearDownKeys();
-            memset(keys, 0, sizeof(KeysBitset) * max_dequeue_items);
             continue;
         }
 
@@ -44,10 +41,9 @@ void KeyboardManager::UpdateThread(std::stop_token stop_token) {
             keys_cnt = down_keys_queue_.try_dequeue_bulk(keys, max_dequeue_items);
             if (keys_cnt) {
                 for (size_t i = 0; i < keys_cnt; i++) {
+                    Native::GetInstance()->SendKeysBitsetDown(keys[i]);
                     down_keys_in_ |= keys[i];
                 }
-                updated_down_keys = true;
-                memset(keys, 0, sizeof(KeysBitset) * max_dequeue_items);
             }
         } while (keys_cnt != 0);
 
@@ -58,11 +54,10 @@ void KeyboardManager::UpdateThread(std::stop_token stop_token) {
                     Native::GetInstance()->SendKeysBitsetUp(keys[i]);
                     down_keys_in_ &= ~(keys[i]);
                 }
-                memset(keys, 0, sizeof(KeysBitset) * max_dequeue_items);
             }
         } while (keys_cnt != 0);
 
-        if (updated_down_keys || persistent_mode_.load(std::memory_order_acquire)) {
+        if (persistent_mode_.load(std::memory_order_acquire)) {
             Native::GetInstance()->SendKeysBitsetDown(down_keys_in_);
         }
 
