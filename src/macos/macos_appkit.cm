@@ -13,6 +13,7 @@ extern "C"
         CFMachPortRef eventTap = nullptr;
         CFRunLoopSourceRef runLoopSource = nullptr;
         CGEventSourceRef eventSource = nullptr;
+        CGEventSourceRef combinedSessionEventSource = nullptr;
     };
     /* static CGEventFlags MacOSModifierToEventFlag(uint32_t modifier) {
         CGEventFlags nativeEventFlag = 0;
@@ -269,7 +270,15 @@ CGEventHandler::CGEventHandler(HotkeyHandlerCallback hkHandler, MouseButtonHandl
 
     inner = new CGEventHandlerInner();
     inner->eventSource = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
-    ;
+    inner->combinedSessionEventSource = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
+    if (!inner->eventSource || !inner->combinedSessionEventSource)
+    {
+        fprintf(stderr, "failed to create event source\n");
+        return;
+    }
+    CGEventSourceSetLocalEventsSuppressionInterval(inner->eventSource, 0.0);
+    CGEventSourceSetLocalEventsSuppressionInterval(inner->combinedSessionEventSource, 0.0);
+
     CGEventMask eventMask = (1 << kCGEventKeyDown) | (1 << kCGEventLeftMouseDown) | (1 << kCGEventLeftMouseUp) | (1 << kCGEventRightMouseDown) | (1 << kCGEventRightMouseUp) | (1 << kCGEventOtherMouseDown) | (1 << kCGEventOtherMouseUp);
     inner->eventTap = CGEventTapCreate(kCGHIDEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, CGEventCallBack, this);
     if (!inner->eventTap)
@@ -293,10 +302,11 @@ CGEventHandler::~CGEventHandler()
             CFRelease(inner->runLoopSource);
         }
     }
-
-    inner->eventTap = nullptr;
-    inner->runLoopSource = nullptr;
-
+    if (inner->eventSource)
+        CFRelease(inner->eventSource);
+    if (inner->combinedSessionEventSource)
+        CFRelease(inner->combinedSessionEventSource);
+    
     delete inner;
     inner = nullptr;
 }
