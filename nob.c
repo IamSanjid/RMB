@@ -816,7 +816,7 @@ int check_prerequisites() {
 #else
 #if defined(__APPLE__) || defined(__MACH__)
     static const int gpp_min_version = 10;
-    static const int gpp_max_version = 14;
+    static const int gpp_max_version = 69;
 
     const char* new_gpp_bin = NULL;
     for (int ver = gpp_min_version; ver <= gpp_max_version; ver++) {
