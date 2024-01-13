@@ -8,6 +8,12 @@
 
 extern "C"
 {
+    /// Implementation exists in ApplicationServices ///
+    typedef int CGSConnectionID;
+    CGError CGSSetConnectionProperty(CGSConnectionID cid, CGSConnectionID targetCID, CFStringRef key, CFTypeRef value);
+    int _CGSDefaultConnection();
+    /// Implementation exists in ApplicationServices ///
+
     struct CGEventHandlerInner
     {
         CFMachPortRef eventTap = nullptr;
@@ -365,6 +371,11 @@ void CGEventHandler::CursorHide(bool hide)
 {
     if (hide)
     {
+        // Hack to make background cursor setting work
+        CFStringRef propertyString = CFStringCreateWithCString(NULL, "SetsCursorInBackground", kCFStringEncodingUTF8);
+        CGSSetConnectionProperty(_CGSDefaultConnection(), _CGSDefaultConnection(), propertyString, kCFBooleanTrue);
+        CFRelease(propertyString);
+        
         CGDisplayHideCursor(CGMainDisplayID());
     }
     else
