@@ -104,7 +104,7 @@ void MainView::Show() {
     ImGuiIO& io = ImGui::GetIO();
     auto current_config = Config::Current();
 
-    io.IniFilename = NULL;
+    io.IniFilename = nullptr;
 
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
                             ImGuiCond_Always, ImVec2(0.5f, 0.5f));

@@ -26,8 +26,8 @@ typedef void (*HookEventProc)(XPointer closeure, XRecordInterceptData* recorded_
 class XRecordHandler {
 public:
     XRecordHandler(HookEventProc hook_event_proc) {
-        record_display_ = XOpenDisplay(NULL);
-        data_display_ = XOpenDisplay(NULL);
+        record_display_ = XOpenDisplay(nullptr);
+        data_display_ = XOpenDisplay(nullptr);
 
         int major, minor;
         if (XRecordQueryVersion(record_display_, &major, &minor) != 0) {
@@ -37,7 +37,7 @@ public:
 
             XRecordClientSpec clients = XRecordAllClients;
             auto range = XRecordAllocRange();
-            if (range != NULL) {
+            if (range != nullptr) {
                 range->device_events.first = KeyPress;
                 range->device_events.last = MotionNotify;
 
@@ -45,7 +45,7 @@ public:
                                                 &range, 1);
                 if (context_ != 0) {
                     initialized_ = XRecordEnableContextAsync(data_display_, context_,
-                                                             hook_event_proc, NULL) != 0;
+                                                             hook_event_proc, nullptr) != 0;
                 }
                 XFree(range);
             }
@@ -67,7 +67,7 @@ public:
 
         XCloseDisplay(data_display_);
         XCloseDisplay(record_display_);
-        data_display_ = record_display_ = NULL;
+        data_display_ = record_display_ = nullptr;
     }
 
     void Update() {
@@ -108,7 +108,7 @@ LinuxNative::LinuxNative() {
     if (!xrecord_handler_->IsInitialized())
         return;
 
-    display_ = XOpenDisplay(NULL);
+    display_ = XOpenDisplay(nullptr);
 
     if (!display_)
         return;
@@ -283,14 +283,14 @@ void LinuxNative::SendKeysUp(uint32_t* keys, size_t count) {
 void LinuxNative::SetMousePos(int x, int y) {
     int screen = -1;
 
-    GetDefaultScreenMousePos(NULL, NULL, &screen, NULL);
+    GetDefaultScreenMousePos(nullptr, nullptr, &screen, nullptr);
     XWarpPointer(display_, None, RootWindow(display_, screen), 0, 0, 0, 0, x, y);
     XFlush(display_);
 }
 
 void LinuxNative::GetMousePos(int* x_ret, int* y_ret) {
     int def_x, def_y;
-    if (GetDefaultScreenMousePos(&def_x, &def_y, NULL, NULL)) {
+    if (GetDefaultScreenMousePos(&def_x, &def_y, nullptr, nullptr)) {
         *x_ret = def_x;
         *y_ret = def_y;
     }
@@ -318,7 +318,7 @@ NativeWindow LinuxNative::GetFocusedWindow() {
     long nitems;
     auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", False);
     auto root = XDefaultRootWindow(display_);
-    auto data = GetWindowPropertyByAtom(root, request, &nitems, NULL, NULL);
+    auto data = GetWindowPropertyByAtom(root, request, &nitems, nullptr, nullptr);
     if (nitems > 0) {
         active_window = *(Window*)data;
 
@@ -353,7 +353,7 @@ bool LinuxNative::IsMainWindowActive(const std::string& window_name) {
     long nitems;
     auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", False);
     auto root = XDefaultRootWindow(display_);
-    auto data = GetWindowPropertyByAtom(root, request, &nitems, NULL, NULL);
+    auto data = GetWindowPropertyByAtom(root, request, &nitems, nullptr, nullptr);
     if (nitems > 0) {
         auto active_window = *(Window*)data;
 
@@ -488,13 +488,13 @@ bool LinuxNative::GetDefaultScreenMousePos(int* x_ret, int* y_ret, int* screen_r
         }
     }
     if (ret == true) {
-        if (x_ret != NULL)
+        if (x_ret != nullptr)
             *x_ret = x;
-        if (y_ret != NULL)
+        if (y_ret != nullptr)
             *y_ret = y;
-        if (screen_ret != NULL)
+        if (screen_ret != nullptr)
             *screen_ret = screen_num;
-        if (window_ret != NULL)
+        if (window_ret != nullptr)
             *window_ret = window;
         return true;
     }
@@ -514,22 +514,22 @@ unsigned char* LinuxNative::GetWindowPropertyByAtom(Window window, Atom atom, lo
                                 &actual_type, &actual_format, &_nitems, &bytes_after, &prop);
     if (status == BadWindow) {
         fprintf(stderr, "window id # 0x%lx does not exists!", window);
-        return NULL;
+        return nullptr;
     }
     if (status != Success) {
         fprintf(stderr, "XGetWindowProperty failed!");
-        return NULL;
+        return nullptr;
     }
 
-    if (nitems != NULL) {
+    if (nitems != nullptr) {
         *nitems = _nitems;
     }
 
-    if (type != NULL) {
+    if (type != nullptr) {
         *type = actual_type;
     }
 
-    if (size != NULL) {
+    if (size != nullptr) {
         *size = actual_format;
     }
     return prop;
@@ -625,7 +625,7 @@ void LinuxNative::SendModifier(int modmask, int is_press) {
 
 bool LinuxNative::EWMHIsSupported(const char* feature) {
     long nitems = 0L;
-    Atom* results = NULL;
+    Atom* results = nullptr;
     long i = 0;
 
     Window root;
@@ -657,7 +657,7 @@ bool LinuxNative::ActivateWindow(Window window) {
         EWMHIsSupported("_NET_CURRENT_DESKTOP") == True) {
         long nitems;
         auto request = XInternAtom(display_, "_NET_WM_DESKTOP", False);
-        auto data = GetWindowPropertyByAtom(window, request, &nitems, NULL, NULL);
+        auto data = GetWindowPropertyByAtom(window, request, &nitems, nullptr, nullptr);
 
         if (nitems > 0) {
             auto root = RootWindow(display_, 0);
@@ -699,11 +699,11 @@ void LinuxNative::EnumAllWindow(EnumWindowProc enumWinProc, void* userDefinedPtr
 
     IterateChildWindows = [&](Window window) {
         Window dummy;
-        Window* children = NULL;
+        Window* children = nullptr;
         unsigned int i, nchildren;
         Status success = XQueryTree(display_, window, &dummy, &dummy, &children, &nchildren);
         if (!success) {
-            if (children != NULL)
+            if (children != nullptr)
                 XFree(children);
             return;
         }
@@ -715,7 +715,7 @@ void LinuxNative::EnumAllWindow(EnumWindowProc enumWinProc, void* userDefinedPtr
             IterateChildWindows(children[i]);
         }
 
-        if (children != NULL)
+        if (children != nullptr)
             XFree(children);
     };
 

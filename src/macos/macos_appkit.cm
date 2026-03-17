@@ -372,7 +372,7 @@ void CGEventHandler::CursorHide(bool hide)
     if (hide)
     {
         // Hack to make background cursor setting work
-        CFStringRef propertyString = CFStringCreateWithCString(NULL, "SetsCursorInBackground", kCFStringEncodingUTF8);
+        CFStringRef propertyString = CFStringCreateWithCString(nullptr, "SetsCursorInBackground", kCFStringEncodingUTF8);
         CGSSetConnectionProperty(_CGSDefaultConnection(), _CGSDefaultConnection(), propertyString, kCFBooleanTrue);
         CFRelease(propertyString);
         
@@ -386,7 +386,7 @@ void CGEventHandler::CursorHide(bool hide)
 
 CGEventRef CGEventCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *user_ptr)
 {
-    if (user_ptr == NULL)
+    if (user_ptr == nullptr)
     {
         return event;
     }

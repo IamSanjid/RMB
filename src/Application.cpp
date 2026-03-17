@@ -122,8 +122,9 @@ bool Application::Initialize(const char* name, uint32_t width, uint32_t height) 
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    main_window_ = glfwCreateWindow(width, height, name, NULL, NULL);
-    if (main_window_ == NULL)
+    float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
+    main_window_ = glfwCreateWindow((int)(width * main_scale), (int)(height * main_scale), name, nullptr, nullptr);
+    if (main_window_ == nullptr)
         return false;
 
     controller_ = new NpadController();
@@ -153,7 +154,7 @@ void Application::Run() {
 
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
-    io.IniFilename = NULL;
+    io.IniFilename = nullptr;
     ImGui::StyleColorsDark();
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -169,6 +170,7 @@ void Application::Run() {
     while (!glfwWindowShouldClose(main_window_)) {
         glfwWaitEvents();
         if (glfwGetWindowAttrib(main_window_, GLFW_ICONIFIED)) {
+            ImGui_ImplGlfw_Sleep(10);
             continue;
         }
 

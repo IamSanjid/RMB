@@ -14,11 +14,11 @@ std::shared_ptr<Native> Native::GetInstance() {
 WinNative* WinNative::instance_ = nullptr;
 
 WinNative::WinNative()
-    : /*kbd_hook_(SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, NULL)),
+    : /*kbd_hook_(SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, nullptr, nullptr)),
     last_key_({})*/
-      mouse_hook_(SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, NULL, NULL)) {
+      mouse_hook_(SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, nullptr, 0)) {
     instance_ = this;
-    HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
+    HANDLE arrowHandle = LoadImage(nullptr, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
     default_arrow_ = CopyCursor(arrowHandle);
 
     WNDCLASSEXW wcex{};
@@ -51,7 +51,7 @@ WinNative::~WinNative() {
     if (reg_window_) {
         DestroyWindow(reg_window_);
         UnregisterClass(szWindowClass, nullptr);
-        reg_window_ = NULL;
+        reg_window_ = nullptr;
     }
     if (default_arrow_) {
         SetSystemCursor(default_arrow_, OCR_NORMAL);
@@ -179,7 +179,7 @@ bool WinNative::IsMainWindowActive(const std::string& window_name) {
     QueryFullProcessImageNameA(hProc, 0, path, &size);
     CloseHandle(hProc);
 
-    if (size && strstr(path, window_name.c_str()) != NULL &&
+    if (size && strstr(path, window_name.c_str()) != nullptr &&
         GetWindow(active_window, GW_OWNER) == (HWND)0 && IsWindowVisible(active_window)) {
         return true;
     }
@@ -220,13 +220,13 @@ bool WinNative::SetFocusOnWindow(const std::string& window_name) {
 
         CloseHandle(hProc);
 
-        if (size && strstr(path, finder->sub_str) != NULL) {
+        if (size && strstr(path, finder->sub_str) != nullptr) {
             finder->found_process = ownerHwnd;
             return FALSE;
         }
         return TRUE;
     };
-    process_finder finder = {window_name.c_str(), NULL};
+    process_finder finder = {window_name.c_str(), nullptr};
     EnumWindows(EnumWindowsProc, (LPARAM)&finder);
     if (finder.found_process) {
         return SetFocusOnWindow(static_cast<NativeWindow>(finder.found_process));
@@ -239,7 +239,7 @@ void WinNative::CursorHide(bool hide) {
     if (hide && !is_hidden) {
         // Save a copy of the default cursor
         if (!default_arrow_) {
-            HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
+            HANDLE arrowHandle = LoadImage(nullptr, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
             default_arrow_ = CopyCursor(arrowHandle);
         }
 
@@ -256,7 +256,7 @@ void WinNative::CursorHide(bool hide) {
         SetSystemCursor(default_arrow_, OCR_NORMAL);
         DestroyCursor(default_arrow_);
 
-        HANDLE arrowHandle = LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
+        HANDLE arrowHandle = LoadImage(nullptr, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
         default_arrow_ = CopyCursor(arrowHandle);
         is_hidden = false;
     }

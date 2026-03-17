@@ -1,4 +1,4 @@
-// #define _NOB_TEST
+#define _NOB_TEST
 
 #define NOB_IMPLEMENTATION
 #include ".nob/nob.h"
@@ -47,7 +47,7 @@ static const External externals[] = {
         &(ExternalGitConfig){
             .link = "https://github.com/glfw/glfw.git",
             .branch = NULL,
-            .tag = "3.3.9",
+            .tag = "3.4",
         },
         &default_git_external_acquire,
         &external_glfw_build,
@@ -57,7 +57,7 @@ static const External externals[] = {
         &(ExternalGitConfig){
             .link = "https://github.com/ocornut/imgui.git",
             .branch = NULL,
-            .tag = "v1.90",
+            .tag = "v1.92.6",
         },
         &default_git_external_acquire,
         &external_imgui_build,
@@ -378,8 +378,13 @@ defer:
 int external_glfw_build(const void* this_ptr) {
     External* this = (External*)this_ptr;
 
-    static const char* default_srcs[] = {"src/context.c", "src/init.c",   "src/input.c",
-                                         "src/monitor.c", "src/vulkan.c", "src/window.c"};
+    static const char* default_srcs[] = {
+        "src/context.c",   "src/init.c",         "src/input.c",
+        "src/monitor.c",   "src/platform.c",     "src/vulkan.c",
+        "src/window.c",    "src/egl_context.c",  "src/osmesa_context.c",
+        "src/null_init.c", "src/null_monitor.c", "src/null_window.c", 
+        "src/null_joystick.c"
+    };
 
     ExternalGitConfig* config = (ExternalGitConfig*)this->config;
     nob_log_linebreak();
@@ -413,9 +418,10 @@ int external_glfw_build(const void* this_ptr) {
     nob_cmd_append(&cmd, nob_temp_sprintf("-I%s/src", proj_dir));
 #ifdef _WIN32
     static const char* platform_specific_sources[] = {
-        "src/win32_init.c",  "src/win32_joystick.c", "src/win32_monitor.c",
-        "src/win32_time.c",  "src/win32_thread.c",   "src/win32_window.c",
-        "src/wgl_context.c", "src/egl_context.c",    "src/osmesa_context.c"};
+        "src/win32_init.c",   "src/win32_joystick.c", "src/win32_monitor.c",
+        "src/win32_window.c", "src/wgl_context.c",    "src/win32_module.c",
+        "src/win32_time.c",   "src/win32_thread.c",
+    };
 
     nob_cmd_append(&cmd, "-D_CRT_SECURE_NO_WARNINGS", "-Gd", "-TC", "/errorReport:prompt", "-W3",
                    "/external:W3");
@@ -425,8 +431,8 @@ int external_glfw_build(const void* this_ptr) {
 #if defined(__APPLE__) || defined(__MACH__)
     static const char* platform_specific_sources[] = {
         "src/cocoa_init.m",   "src/cocoa_joystick.m", "src/cocoa_monitor.m",
-        "src/cocoa_window.m", "src/cocoa_time.c",     "src/posix_thread.c",
-        "src/nsgl_context.m", "src/egl_context.c",    "src/osmesa_context.c",
+        "src/cocoa_window.m", "src/nsgl_context.m",   "src/cocoa_time.c",
+        "src/posix_module.c", "src/posix_thread.c"
     };
 
     nob_cmd_append(&cmd, "-D_GLFW_COCOA");
@@ -434,9 +440,10 @@ int external_glfw_build(const void* this_ptr) {
     nob_cmd_append(&cmd, "-Wno-unknown-warning-option", "-Wno-unused-command-line-argument");
 #else
     static const char* platform_specific_sources[] = {
-        "src/x11_init.c",       "src/x11_monitor.c",   "src/x11_window.c",  "src/xkb_unicode.c",
-        "src/posix_time.c",     "src/posix_thread.c",  "src/glx_context.c", "src/egl_context.c",
-        "src/osmesa_context.c", "src/linux_joystick.c"};
+        "src/x11_init.c",    "src/x11_monitor.c",    "src/x11_window.c", "src/xkb_unicode.c",
+        "src/glx_context.c", "src/linux_joystick.c", "src/posix_poll.c", "src/posix_module.c",
+        "src/posix_time.c",  "src/posix_thread.c",
+    };
     char* x11_include_path = NULL;
     char* x11_library_path = NULL;
     if (!unix_find_glfw_required_x11_paths(&x11_include_path, &x11_library_path))

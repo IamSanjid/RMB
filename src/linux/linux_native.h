@@ -52,10 +52,10 @@ private:
 
     /* most of these codes are copy pasted from https://github.com/jordansissel/xdotool */
 
-    bool GetDefaultScreenMousePos(int* x_ret, int* y_ret, int* screen_ret = NULL,
-                                  Window* window_ret = NULL);
-    unsigned char* GetWindowPropertyByAtom(Window window, Atom atom, long* nitems = NULL,
-                                           Atom* type = NULL, int* size = NULL);
+    bool GetDefaultScreenMousePos(int* x_ret, int* y_ret, int* screen_ret = nullptr,
+                                  Window* window_ret = nullptr);
+    unsigned char* GetWindowPropertyByAtom(Window window, Atom atom, long* nitems = nullptr,
+                                           Atom* type = nullptr, int* size = nullptr);
     uint32_t KeyCodeToModifier(KeyCode keycode);
     uint32_t HashRegKey(int key, uint32_t modmask);
     void EnumAllWindow(EnumWindowProc enumWindowProc, void* userDefinedPtr);
