@@ -1,0 +1,172 @@
+name: CI / CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Build type"
+        required: true
+        default: "normal"
+        type: choice
+        options:
+          - normal
+          - pre-release
+          - release
+      version:
+        description: "Version (e.g. 1.0.0) — required for release and pre-release"
+        required: false
+        type: string
+
+jobs:
+  # ── Validate inputs before doing any work ────────────────────────────────
+
+  validate:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check version is set for release builds
+        if: ${{ github.event.inputs.build_type != 'normal' && github.event.inputs.version == '' }}
+        run: |
+          echo "::error::A version number is required for release and pre-release builds."
+          exit 1
+
+  build:
+    name: Build [${{ matrix.os-name }}-${{ matrix.arch }}] (${{ github.event.inputs.build_type }})
+    needs: validate
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13        # x86_64 runner
+            os-name: macos
+            arch: x64
+            artifact: RMB
+
+          - os: macos-latest    # arm64 runner (M-series)
+            os-name: macos
+            arch: arm64
+            artifact: RMB
+
+          - os: windows-latest
+            os-name: windows
+            arch: x64
+            artifact: RMB.exe
+
+          - os: ubuntu-latest
+            os-name: linux
+            arch: x64
+            artifact: RMB
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # ── Dependencies: macOS ───────────────────────────────────────────────
+
+      - name: Install LLVM/Clang (macOS)
+        if: ${{ matrix.os-name == 'macos' }}
+        run: |
+          brew install llvm
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+
+      # ── Dependencies: Linux ───────────────────────────────────────────────
+
+      - name: Install dependencies (Linux)
+        if: ${{ matrix.os-name == 'linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libx11-dev \
+            mesa-common-dev \
+            libxtst-dev
+
+      # ── Patch nob_config.h (never committed) ─────────────────────────────
+
+      - name: Patch nob_config.h — LLVM toolchain path (macOS)
+        if: ${{ matrix.os-name == 'macos' }}
+        run: |
+          LLVM_PREFIX="$(brew --prefix llvm)"
+          sed -i.bak "1s|^|#define LLVM_TOOLCHAIN \"${LLVM_PREFIX}\"\n|" .nob/nob_config.h
+
+      - name: Patch nob_config.h — Debug (normal builds)
+        if: ${{ github.event.inputs.build_type == 'normal' }}
+        shell: bash
+        run: |
+          sed -i.bak '1s/^/#define BUILD_DEBUG\n/' .nob/nob_config.h
+
+      # ── Build ─────────────────────────────────────────────────────────────
+
+      - name: Build (macOS / Linux)
+        if: ${{ matrix.os-name != 'windows' }}
+        run: |
+          cc nob.c -o nob
+          ./nob
+
+      - name: Build (Windows)
+        if: ${{ matrix.os-name == 'windows' }}
+        shell: cmd
+        run: |
+          cl nob.c /Fe:nob.exe
+          nob.exe
+
+      # ── Resolve artifact output path ──────────────────────────────────────
+
+      - name: Set artifact path
+        id: paths
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.build_type }}" == "normal" ]; then
+            CONFIG="Debug"
+          else
+            CONFIG="Release"
+          fi
+
+          PLATFORM="${{ matrix.os-name }}-${{ matrix.arch }}"
+          ARTIFACT_PATH="build/${CONFIG}/${PLATFORM}/${{ matrix.artifact }}"
+
+          echo "artifact_path=${ARTIFACT_PATH}" >> $GITHUB_OUTPUT
+          echo "platform=${PLATFORM}" >> $GITHUB_OUTPUT
+
+      # ── Upload per-platform artifact ──────────────────────────────────────
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RMB-${{ steps.paths.outputs.platform }}
+          path: ${{ steps.paths.outputs.artifact_path }}
+          if-no-files-found: error
+          retention-days: 30
+
+  # ── Publish release after all platforms succeed ───────────────────────────
+
+  release:
+    name: Publish Release
+    needs: build
+    if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'pre-release' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: >-
+            ${{ github.event.inputs.build_type == 'release'
+              && format('Release v{0}', github.event.inputs.version)
+              || format('Pre-Release v{0}', github.event.inputs.version) }}
+          draft: false
+          prerelease: ${{ github.event.inputs.build_type == 'pre-release' }}
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
