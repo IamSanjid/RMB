@@ -242,7 +242,19 @@ void Application::TogglePanning() {
         Native::GetInstance()->SetMousePos(screen_center_x_, screen_center_y_);
 
         panning_started_ = true;
+
+        if (glfwGetWindowAttrib(main_window_, GLFW_ICONIFIED)) {
+            return;
+        }
+
+#if defined(__APPLE__) || defined(__MACH__)
+        // It seems on macOS we can't iconify the window if it's not focused/active. Crashed while testing..
+        if (glfwGetWindowAttrib(main_window_, GLFW_FOCUSED)) {
+            glfwIconifyWindow(main_window_);
+        }
+#else
         glfwIconifyWindow(main_window_);
+#endif
     }
     else {
         panning_started_ = false;
@@ -283,7 +295,10 @@ void Application::OnHotkey(HotkeyEvent& evt) {
 }
 
 void Application::OnMouseButton(MouseButtonEvent& evt) {
+#ifdef _WIN32
     static uint32_t last_key = 0;
+#endif // _WIN32
+
     DEBUG_OUT("[%f] button: %d, pressed: %d\n", GetTotalRunningTime(), evt.key, evt.is_pressed);
     if (!Config::Current()->BIND_MOUSE_BUTTON) {
         return;
@@ -302,10 +317,11 @@ void Application::OnMouseButton(MouseButtonEvent& evt) {
         break;
     }
     if (key) {
-        const std::string& target_window_name = Config::Current()->TARGET_NAME;
         auto app = Application::GetInstance();
+#ifdef _WIN32
         // fixes the left button press issue when trying to focus on another window
-        // other than the target window. (Mostly on windows..)
+        // other than the target window.
+        const std::string& target_window_name = Config::Current()->TARGET_NAME;
         if (!Native::GetInstance()->IsMainWindowActive(target_window_name)) {
             if (last_key) {
                 app->controller_->ClearState();
@@ -320,8 +336,9 @@ void Application::OnMouseButton(MouseButtonEvent& evt) {
                 return;
             }
         }
-        app->controller_->SetButton(key, evt.is_pressed);
         last_key = key;
+#endif // _WIN32
+        app->controller_->SetButton(key, evt.is_pressed);
     }
 }
 

@@ -11,7 +11,11 @@
 #define BUILD_CONF "Release"
 #endif
 #define BUILD_DIR "build"
+#if defined(__aarch64__) || defined(__arm64__)
+#define BUILD_ARCH "arm64"
+#else
 #define BUILD_ARCH "x64"
+#endif
 #define BUILD_OBJS_DIR "objs"
 
 // May be we can change it programatically,
@@ -35,10 +39,24 @@ struct Nob_File_Paths;
 static Nob_File_Paths include_dirs = {0};
 static Nob_File_Paths library_dirs = {0};
 #if defined(__APPLE__) || defined(__MACH__)
+
+#ifndef LLVM_TOOLCHAIN
+// Change this to your llvm toolchain directory, or define `LLVM_TOOLCHAIN`
+#define LLVM_TOOLCHAIN "/usr/local/opt/llvm"
+#endif // LLVM_TOOLCHAIN
+
 #define TARGET_NAME "macos"
-static char* cpp_compiler_exec = "g++";
-static char* obj_cpp_compiler_exec = "clang++";
-static char* c_compiler_exec = "clang";
+static char* cpp_compiler_exec = LLVM_TOOLCHAIN"/bin/clang++";
+static char* obj_cpp_compiler_exec = LLVM_TOOLCHAIN"/bin/clang++";
+static char* c_compiler_exec = "clang"; // Using Apple's Clang for C/Objective-C
+
+#ifdef BUILD_DEBUG
+static char* cpp_flags[] = {};
+static char* ld_flags[] = {};
+#else
+static char* cpp_flags[] = {};
+static char* ld_flags[] = {"-Wl,-S"};
+#endif // BUILD_DEBUG
 
 static char* os_version_str = NULL;
 static char* os_sysroot_dir = NULL;

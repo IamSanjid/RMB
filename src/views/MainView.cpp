@@ -10,6 +10,7 @@
 #include "Config.h"
 #include "native.h"
 #include "npad_controller.h"
+#include "Utils.h"
 
 const char* INI_FILE = "RMB.ini";
 
@@ -364,7 +365,7 @@ void MainView::Show() {
         hover_text = "The following key will be pressed if " + btn + "\nbutton is clicked.";
 
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip(hover_text.c_str());
+            ImGui::SetTooltip("%s", hover_text.c_str());
         }
     }
 
@@ -439,9 +440,11 @@ void MainView::Show() {
 }
 
 void MainView::OnKeyPress(int key, int scancode, int mods) {
-    (void)mods;
+    DEBUG_OUT("[OnKeyPress] key %d scancode %d mods %d\n", key, scancode, mods);
     if (scancode <= 0)
         return;
+
+    auto current_config = Config::Current();
 
     if (key == GLFW_KEY_ESCAPE) {
         for (int i = 0; i < 4; i++) {
@@ -456,10 +459,32 @@ void MainView::OnKeyPress(int key, int scancode, int mods) {
         return;
     }
 
+    // Ctrl+C, we remove existing bound key
+    if (key == GLFW_KEY_C && mods == GLFW_MOD_CONTROL) {
+        for (int i = 0; i < 4; i++) {
+            r_btn_changing_[i] = false;
+            if (i < 3) {
+                if (mouse_btn_changing_[i]) {
+                    switch (i) {
+                    case 0:
+                        current_config->LEFT_MOUSE_KEY = 0;
+                    case 1:
+                        current_config->RIGHT_MOUSE_KEY = 0;
+                    case 2:
+                        current_config->MIDDLE_MOUSE_KEY = 0;
+                    }
+                }
+                mouse_btn_changing_[i] = false;
+            }
+        }
+        any_mouse_btn_changing_ = false;
+        GetRightStickButtons();
+        GetMouseButtons();
+        return;
+    }
+
     if (selected_keys_[key] || scancodes_to_glfw_.find(scancode) == scancodes_to_glfw_.cend())
         return;
-
-    auto current_config = Config::Current();
 
     for (int i = 0; i < 4; i++) {
         if (r_btn_changing_[i]) {

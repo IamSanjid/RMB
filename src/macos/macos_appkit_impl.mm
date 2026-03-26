@@ -1,5 +1,6 @@
 #import "macos_appkit_impl.h"
 
+#import <objc/message.h>
 #import <AppKit/NSWorkspace.h>
 #import <AppKit/NSScreen.h>
 #import <AppKit/NSCursor.h>
@@ -72,6 +73,7 @@ AppKit::~AppKit()
 
         if (array == nullptr)
         {
+            CFRelease(element);
             return false;
         }
 
@@ -83,14 +85,58 @@ AppKit::~AppKit()
             // Can try again: https://developer.apple.com/documentation/applicationservices/1462091-axuielementperformaction#discussion
             if (error != 0 && error != kAXErrorCannotComplete) 
             {
+                CFRelease(element);
                 return false;
             }
         }
         CFRelease(element);
     }
     NSRunningApplication *app = [NSRunningApplication runningApplicationWithProcessIdentifier:pid];
+    if (!app)
+    {
+        return false;
+    }
+    if (app.active)
+    {
+        return true;
+    }
 
-    return app && [app activateWithOptions:NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps];
+    if (@available(macOS 14.0, *))
+    {
+        // More info: https://developer.apple.com/documentation/appkit/passing-control-from-one-app-to-another-with-cooperative-activation?changes=__8&language=objc
+        NSRunningApplication *current = [NSRunningApplication currentApplication];
+
+        // Beta SDKs might not contain these functions — call dynamically via objc_msgSend
+        SEL yieldSel = NSSelectorFromString(@"yieldActivationToApplication:");
+        if ([current respondsToSelector:yieldSel])
+        {
+            // void yieldActivationToApplication:(NSRunningApplication *)
+            typedef void (*YieldFn)(id, SEL, id);
+            YieldFn yield = (YieldFn)objc_msgSend;
+            yield(current, yieldSel, app);
+        }
+
+        SEL activateSel = NSSelectorFromString(@"activate");
+        if ([app respondsToSelector:activateSel])
+        {
+            // void activate(void)
+            typedef void (*ActivateFn)(id, SEL);
+            ActivateFn activate = (ActivateFn)objc_msgSend;
+            activate(app, activateSel);
+            return true;
+        }
+
+        // Fallback if those are not available, usually `activateFromApplication` should be always available for macOS 14.0+.
+        return [app activateFromApplication:current options:NSApplicationActivateAllWindows];
+    }
+    else
+    {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        return [app activateWithOptions:NSApplicationActivateAllWindows 
+                                       | NSApplicationActivateIgnoringOtherApps];
+#pragma clang diagnostic pop
+    }
 }
 
 //

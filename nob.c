@@ -1,4 +1,4 @@
-#define _NOB_TEST
+// #define _NOB_TEST
 
 #define NOB_IMPLEMENTATION
 #include ".nob/nob.h"
@@ -306,12 +306,13 @@ void default_platform_specific_compile_options(Nob_Cmd* cmd, CompileObjsOptions*
 #ifdef BUILD_DEBUG
     nob_cmd_append(cmd, "-O0", "-ggdb", "-D_DEBUG=1");
 #else
-    nob_cmd_append(cmd, "-O2", "-DNDEBUG", "-s");
+    nob_cmd_append(cmd, "-O2", "-DNDEBUG");
+#endif // BUILD_DEBUG
+
 #if defined(__APPLE__) || defined(__MACH__)
 #else  // MACOS
+    nob_cmd_append(cmd, "-s");
 #endif // UNIX/LINUX
-
-#endif
 
 #endif // END_OF_PLATFORM_SPECIFIC
 }
@@ -436,7 +437,8 @@ int external_glfw_build(const void* this_ptr) {
     };
 
     nob_cmd_append(&cmd, "-D_GLFW_COCOA");
-    // Note: We're cross-linking clang compiled objects with gnu linker, please be cautious.
+    // Note: We're cross-linking Apple's clang compiled objects and LLVM clang compiled objects, please be cautious.
+    // it's fine for GLFW, since GLFW is written in C and Objective-C.
     nob_cmd_append(&cmd, "-Wno-unknown-warning-option", "-Wno-unused-command-line-argument");
 #else
     static const char* platform_specific_sources[] = {
@@ -572,8 +574,10 @@ int external_imgui_build(const void* this_ptr) {
     nob_cmd_append(&cmd, "-W4", "-std:c++20");
 #else // _WIN32
 #if defined(__APPLE__) || defined(__MACH__)
-    // Note: We're cross-linking clang compiled objects with gnu linker, please be cautious.
-    nob_cmd_append(&cmd, "-Wno-unknown-warning-option", "-Wno-unused-command-line-argument");
+    if (NOB_ARRAY_LEN(cpp_flags) > 0) {
+        nob_da_append_many(&cmd, cpp_flags, NOB_ARRAY_LEN(cpp_flags));
+    }
+    nob_cmd_append(&cmd, "-isysroot", os_sysroot_dir);
 #else  // MACOS
 #endif // LINUX
     nob_cmd_append(&cmd, "-Wall", "-std=c++20");
@@ -822,26 +826,8 @@ int check_prerequisites() {
 #ifdef _WIN32
 #else
 #if defined(__APPLE__) || defined(__MACH__)
-    static const int gpp_min_version = 10;
-    static const int gpp_max_version = 69;
-
-    const char* new_gpp_bin = NULL;
-    for (int ver = gpp_min_version; ver <= gpp_max_version; ver++) {
-        const char* current_gpp_bin = nob_temp_sprintf("g++-%d", ver);
-        cmd.count = 0;
-        nob_cmd_append(&cmd, current_gpp_bin, "--version");
-
-        EXIT_CODE_TYPE exit_code = 0;
-        if (nob_cmd_run_sync_silently(cmd, &exit_code) || exit_code != CMD_NOT_FOUND_EXIT_CODE) {
-            new_gpp_bin = current_gpp_bin;
-            break;
-        }
-    }
-    if (new_gpp_bin) {
-        cpp_compiler_exec = strdup(new_gpp_bin); // memory leak, don't care for now..
-        nob_log(NOB_INFO, "Using '%s' as c++ compiler.", cpp_compiler_exec);
-    }
-#endif
+#else
+#endif // END_OF_PLATFORM_SPECIFIC
     nob_return_defer(populate_lib_inc_dirs());
 #endif
 defer:
@@ -944,13 +930,21 @@ int build_main() {
 
 #define PLATFORM_SPECIFIC_DIR "src/macos"
     nob_cmd_append(&cmd, "-I/usr/local/include", "-I/opt/local/include", "-I/opt/homebrew/include");
+    if (NOB_ARRAY_LEN(cpp_flags) > 0) {
+        nob_da_append_many(&cmd, cpp_flags, NOB_ARRAY_LEN(cpp_flags));
+    }
+    nob_cmd_append(&cmd, "-isysroot", os_sysroot_dir);
+
 #else // MACOS
 
 #define PLATFORM_SPECIFIC_DIR "src/linux"
+    nob_cmd_append(&cmd, "-Wno-class-memaccess");
 
 #endif // UNIX/LINUX
-    nob_cmd_append(&cmd, "-Wall", "-std=c++20", "-Wno-class-memaccess");
+
+    nob_cmd_append(&cmd, "-Wall", "-std=c++20");
     libglfw3_path = nob_temp_sprintf("%s/libglfw3.a", libglfw3_path);
+
 #endif // END_OF_PLATFORM_SPECIFIC
 
     nob_da_append(&includes, PLATFORM_SPECIFIC_DIR);
@@ -961,10 +955,6 @@ int build_main() {
     // compiling objective-cpp code using apple's clang compiler
 #if defined(__APPLE__) || defined(__MACH__)
     nob_log(NOB_INFO, "Compiling Objective-c/cpp files...");
-    // It would've been nice if we could partially create/edit current cmd bucket/arg list...
-    size_t cmd_checkpoint = cmd.count;
-    // Note: We're cross-linking clang compiled objects with gnu linker, please be cautious.
-    nob_cmd_append(&cmd, "-Wno-unknown-warning-option", "-Wno-unused-command-line-argument");
 
     static const char* obj_c_exts[] = {".m", ".mm"};
     Nob_File_Paths obj_srcs = {0};
@@ -993,10 +983,7 @@ int build_main() {
                            &object_files)) {
         nob_return_defer(0);
     }
-
-    cmd.count = cmd_checkpoint;
-    cmd.items[0] = cpp_compiler_exec;
-#endif
+#endif // APPLE
 
     if (!nob_find_files_with_extensions(PLATFORM_SPECIFIC_DIR, source_exts,
                                         NOB_ARRAY_LEN(source_exts), &srcs)) {
@@ -1059,6 +1046,10 @@ int build_main() {
         nob_cmd_append(&cmd, "-framework", "OpenGL", "-framework", "Cocoa", "-framework", "IOKit",
                        "-framework", "Foundation", "-framework", "AppKit");
         nob_cmd_append(&cmd, "-framework", "Carbon", "-framework", "ApplicationServices");
+        nob_cmd_append(&cmd, "-stdlib=libc++");
+        if (NOB_ARRAY_LEN(ld_flags) > 0) {
+            nob_da_append_many(&cmd, ld_flags, NOB_ARRAY_LEN(ld_flags));
+        }
         nob_cmd_append(&cmd, nob_temp_sprintf("-Wl,-platform_version,%s", os_version_str));
 #else  // MACOS
         nob_cmd_append(&cmd, "-lGL", "-lX11", "-lXi", "-lXfixes", "-lXtst");

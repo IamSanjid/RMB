@@ -29,8 +29,10 @@ Then you can bind right mouse button or left mouse button with **O** or **Q** or
 * **BTW, make sure 'Bind Mouse Buttons' is ticked.**
 * **If you don't want to apply the mouse binding feature at the moment but still want to keep your binding settings just untick 'Bind Mouse Buttons' for the moment.**
 
+You can now unbound the mouse buttons or set to None by clicking on them and pressing Ctrl+C.
+
 # Disclaimer
-This is a simple learning project so, things might get broken. Since it simulates key presses according to the mouse position, you might feel the camera movement is a bit choppy and weird/wrong. And since this simulates keypresses, you should close(recommended) or hide/minimize other applications.<br/><br/>
+This was a simple learning project so, things might get broken. Since it simulates key presses according to the mouse position, you might feel the camera movement is a bit choppy and weird/wrong. And you should close(recommended) or hide/minimize other applications.<br/><br/>
 * **_Make sure Ryujinx is running, focused, and in the centre of your screen before enabling mouse panning.._**
 * **_Default Panning Toggle Hotkey is Ctrl+F9 if any other application uses the same hotkey it will fail so make sure to choose a unique hotkey or just close other applications._**
 * **_If you don't want to bind mouse buttons with your keyboard keys then just simply press the 'Default' button and set the mouse binding keys to None or just untick the 'Bind Mouse Buttons'_**
@@ -62,17 +64,19 @@ Output directory: `build/RMB/(Debug|Release)/(platform-x64)/RMB(.exe if windows)
 <br>
 After some requests for macOS support here we are.<br>
 Haven't tested properly at all(Can't test in a real environment, don't own a mac device).<br>
-Apple's clang doesn't support c++ 20's `jthread` so came up with some weird solution so that it at least builds and checksout basic usage.<br>
-It will definately become easier and better when they decides to support it :).<br>
-The follwing steps worked on Ventura 13.0.0 should be fine till macOS 12.0 and later versions.
+Apple's clang doesn't support c++ 20's `jthread` so we've to use LLVM's clang to build it.<br>
+The follwing steps worked on Tahoe 26.1 should be fine for anything from macOS 12.0(though 10.x-11.x should work in theory) to latest.
   - Need [HomeBrew](https://brew.sh/)
   - Make sure everything is fine by running `cc --version` you should see some version output. If not then [HomeBrew](https://brew.sh/) was not installed successfully, try again.
-  - `brew install gcc` - need GCC version 10+
-    - why `gcc` even after Apple stopped supporting it? Well to support c++ 20's `jthread`.
-    - (Optional) If the build fails with some header file missing then, run: `g++ --version`(this is gcc's c++ compiler), if you see some output containing `clang`(which is aliased as `g++` by default) then please [WATCH THIS VIDEO](https://youtu.be/0z-fCNNqfEg?t=168).
+  - `brew install llvm` - need llvm version 20+ and its toolchain.
   - Run: `git clone --depth=1 https://github.com/IamSanjid/RMB.git && cd RMB`
-  - Run: `cc -o nob nob.c && ./nob` should succeed with some compiler warnings most of them are safe to ignore.
-  - Confirm by running `build/RMB/Release/macos-x64/RMB`, it will ask for accessibility permissions allow those from System Preference.
+    - If you've installed llvm to a different directory other than the default directory(usually default directory is `/usr/local/opt/llvm`, check clang version by running `/usr/local/opt/llvm/bin/clang++ --version`), please change the value of `LLVM_TOOLCHAIN` at `.nob/nob_config.h`, just update the value between the double quotes (").
+      - `brew --prefix llvm` will output the directory.
+  - Run: `cc -o nob nob.c && ./nob`, should succeed with some compiler warnings most of them are safe to ignore.
+  - Confirm by running:
+    - M* Chips Arm64/Aarch64: `build/RMB/Release/macos-arm64/RMB`
+    - Intel x86_64 chips: `build/RMB/Release/macos-x64/RMB`.
+    - It will ask for accessibility permissions allow those from System Preference.
 
 # For Other Platforms
 1. First you need to implement a global hotkey listener, for windows, a dummy window is created and `RegisterHotKey` API is used to register the hotkeys for that window and listened to `WM_HOTKEY` messages on that window. `XGrabKey` is used for X11 window manager.
