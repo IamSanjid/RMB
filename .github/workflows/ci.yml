@@ -129,7 +129,6 @@ jobs:
           cl nob.c /Fe:nob.exe
           .\nob.exe
 
-
       # ── Resolve artifact output path ──────────────────────────────────────
 
       - name: Set artifact path
@@ -137,14 +136,8 @@ jobs:
         shell: bash
         if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'pre-release' }}
         run: |
-          if [ "${{ github.event.inputs.build_type }}" == "normal" ]; then
-            CONFIG="Debug"
-          else
-            CONFIG="Release"
-          fi
-
           PLATFORM="${{ matrix.os-name }}-${{ matrix.arch }}"
-          ARTIFACT_PATH="build/RMB/${CONFIG}/${PLATFORM}/${{ matrix.artifact }}"
+          ARTIFACT_PATH="build/RMB/Release/${PLATFORM}/${{ matrix.artifact }}"
 
           echo "artifact_path=${ARTIFACT_PATH}" >> $GITHUB_OUTPUT
           echo "platform=${PLATFORM}" >> $GITHUB_OUTPUT
@@ -160,19 +153,78 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  # ── Publish release after all platforms succeed ───────────────────────────
+  # ── Archive each platform's artifact ─────────────────────────────────────────
 
-  release:
-    name: Publish Release
+  package:
+    name: Package [${{ matrix.platform }}]
     needs: build
     if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'pre-release' }}
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-x64
+            windows: false
+          - platform: macos-arm64
+            windows: false
+          - platform: windows-x64
+            windows: true
+          - platform: linux-x64
+            windows: false
+
     steps:
-      - name: Download all artifacts
+      - name: Download artifact for ${{ matrix.platform }}
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
+          name: RMB-${{ matrix.platform }}
+          path: artifact/
+
+      - name: Make binary executable (macOS / Linux)
+        if: ${{ !matrix.windows }}
+        run: chmod +x artifact/RMB
+
+      - name: Package as .tar.xz (macOS / Linux)
+        if: ${{ !matrix.windows }}
+        run: |
+          ARCHIVE_NAME="RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}.tar.xz"
+          mkdir -p "RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}"
+          cp artifact/RMB "RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}/"
+          tar -cJf "${ARCHIVE_NAME}" "RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}/"
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+
+      - name: Package as .zip (Windows)
+        if: ${{ matrix.windows }}
+        run: |
+          ARCHIVE_NAME="RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}.zip"
+          mkdir -p "RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}"
+          cp artifact/RMB.exe "RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}/"
+          zip -r "${ARCHIVE_NAME}" "RMB-${{ github.event.inputs.version }}-${{ matrix.platform }}/"
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.platform }}
+          path: ${{ env.ARCHIVE_NAME }}
+          retention-days: 30
+
+  # ── Publish release after all platforms succeed ───────────────────────────
+
+  release:
+    name: Publish Release
+    needs: package
+    if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'pre-release' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pkg-*
+          path: packages/
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -184,6 +236,6 @@ jobs:
               || format('Pre-Release v{0}', github.event.inputs.version) }}
           draft: false
           prerelease: ${{ github.event.inputs.build_type == 'pre-release' }}
-          files: artifacts/**/*
+          files: packages/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
