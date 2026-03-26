@@ -66,18 +66,18 @@ void Mouse::TurnTest(int delay, int test_type) {
         break;
     }
     case 1: {
-        Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[0], 1);
+        Native::GetInstance()->SendKeysDown((uint32_t*)&Config::Current()->RIGHT_STICK_KEYS[0], 1);
         std::this_thread::sleep_for(
             std::chrono::duration<double, std::milli>(static_cast<double>(delay)));
-        Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[0], 1);
+        Native::GetInstance()->SendKeysUp((uint32_t*)&Config::Current()->RIGHT_STICK_KEYS[0], 1);
 
         break;
     }
     case 2: {
-        Native::GetInstance()->SendKeysDown(&Config::Current()->RIGHT_STICK_KEYS[2], 1);
+        Native::GetInstance()->SendKeysDown((uint32_t*)&Config::Current()->RIGHT_STICK_KEYS[2], 1);
         std::this_thread::sleep_for(
             std::chrono::duration<double, std::milli>(static_cast<double>(delay)));
-        Native::GetInstance()->SendKeysUp(&Config::Current()->RIGHT_STICK_KEYS[2], 1);
+        Native::GetInstance()->SendKeysUp((uint32_t*)&Config::Current()->RIGHT_STICK_KEYS[2], 1);
         break;
     }
     }

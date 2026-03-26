@@ -143,9 +143,7 @@ void Application::Run() {
 
     is_running_ = true;
 
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-    io.IniFilename = nullptr;
+    ImGui::GetIO().IniFilename = nullptr;
     ImGui::StyleColorsDark();
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -208,11 +206,11 @@ void Application::Reconfig(Config* new_conf) {
             glfwGetKeyScancode(Config::Current()->RIGHT_STICK_KEYS[i]);
     }
 
-    if (Config::Current()->LEFT_MOUSE_KEY)
+    if (Config::Current()->LEFT_MOUSE_KEY >= 0)
         Config::Current()->LEFT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->LEFT_MOUSE_KEY);
-    if (Config::Current()->RIGHT_MOUSE_KEY)
+    if (Config::Current()->RIGHT_MOUSE_KEY >= 0)
         Config::Current()->RIGHT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->RIGHT_MOUSE_KEY);
-    if (Config::Current()->MIDDLE_MOUSE_KEY)
+    if (Config::Current()->MIDDLE_MOUSE_KEY >= 0)
         Config::Current()->MIDDLE_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->MIDDLE_MOUSE_KEY);
 
     controller_->SetPersistentMode(Config::Current()->PERSISTANT_KEY_PRESS);
@@ -220,6 +218,12 @@ void Application::Reconfig(Config* new_conf) {
 
 void Application::TogglePanning() {
     if (!panning_started_) {
+        for (int i = 0; i < 4; i++) {
+			// No point in starting the panning if the keys for the right stick are not set.
+            if (Config::Current()->RIGHT_STICK_KEYS[i] < 0)
+                return;
+		}
+
         if (Config::Current()->AUTO_FOCUS_EMU_WINDOW) {
             Native::GetInstance()->SetFocusOnWindow(Config::Current()->TARGET_NAME);
         }
@@ -269,16 +273,21 @@ void Application::DetectMouseMove() {
 }
 
 void Application::OnHotkey(HotkeyEvent& evt) {
-    auto app = Application::GetInstance();
     DEBUG_OUT("hot_key: (%d, %d)\n", evt.key, evt.modifier);
+
+    if (Config::Current()->TOGGLE_KEY < 0 ||
+        Config::Current()->TOGGLE_MODIFIER < 0)
+        return;
+    
+    auto app = Application::GetInstance();
 #if _DEBUG
     if ((int)evt.key == glfwGetKeyScancode(GLFW_KEY_T) &&
         (int)evt.modifier == glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL)) {
         app->mouse_->TurnTest(app->main_view_->test_delay, app->main_view_->test_type);
     }
 #endif
-    if (evt.key == Config::Current()->TOGGLE_KEY &&
-        evt.modifier == Config::Current()->TOGGLE_MODIFIER)
+    if (evt.key == (uint32_t)Config::Current()->TOGGLE_KEY &&
+        evt.modifier == (uint32_t)Config::Current()->TOGGLE_MODIFIER)
         app->TogglePanning();
 }
 
@@ -292,7 +301,7 @@ void Application::OnMouseButton(MouseButtonEvent& evt) {
         return;
     }
 
-    uint32_t key = 0;
+    int key = -1;
     switch (evt.key) {
     case MOUSE_LBUTTON:
         key = Config::Current()->LEFT_MOUSE_KEY;
@@ -304,7 +313,7 @@ void Application::OnMouseButton(MouseButtonEvent& evt) {
         key = Config::Current()->MIDDLE_MOUSE_KEY;
         break;
     }
-    if (key) {
+    if (key >= 0) {
         auto app = Application::GetInstance();
 #ifdef _WIN32
         // fixes the left button press issue when trying to focus on another window

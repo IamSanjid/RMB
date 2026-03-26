@@ -3,7 +3,7 @@
 #include "Config.h"
 
 Config::Config() {
-    constexpr uint32_t NONE = 0x0;
+    constexpr int NONE = -1;
 
     TOGGLE_MODIFIER = GLFW_KEY_LEFT_CONTROL;
     TOGGLE_KEY = GLFW_KEY_F9;

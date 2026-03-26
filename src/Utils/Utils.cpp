@@ -1,9 +1,12 @@
 #include <algorithm>
-#include <string.h>
+#include <cctype>
+#include <string>
 #include "Utils.h"
 
 std::string Utils::to_lower(std::string str) {
-    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    std::ranges::transform(str, str.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
     return str;
 }
 

@@ -17,13 +17,13 @@ public:
 
     std::string TARGET_NAME = "Ryujinx";
 
-    uint32_t TOGGLE_MODIFIER;
-    uint32_t TOGGLE_KEY;
+    int TOGGLE_MODIFIER;
+    int TOGGLE_KEY;
 
-    uint32_t RIGHT_STICK_KEYS[4]{0};
-    uint32_t LEFT_MOUSE_KEY;
-    uint32_t RIGHT_MOUSE_KEY;
-    uint32_t MIDDLE_MOUSE_KEY;
+    int RIGHT_STICK_KEYS[4]{-1,-1,-1,-1};
+    int LEFT_MOUSE_KEY;
+    int RIGHT_MOUSE_KEY;
+    int MIDDLE_MOUSE_KEY;
 
     float SENSITIVITY;
 

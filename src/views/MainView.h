@@ -35,8 +35,7 @@ private:
     void SaveConfig();
     void ReadConfig();
 
-    std::unordered_map<uint32_t, bool> selected_keys_;
-    std::unordered_map<uint32_t, uint32_t> scancodes_to_glfw_;
+    std::unordered_map<int, bool> selected_keys_;
 
     bool any_mouse_btn_changing_ = false;
     bool any_r_btn_chaniging_ = false;
@@ -49,10 +48,5 @@ private:
     std::string mouse_btn_text_[3];
     bool mouse_btn_changing_[3]{false};
 
-    int modifier_selected, key_selected;
-
-    const char* modifiers[3] = {"Control", "Shift", "Alt"};
-    std::vector<uint32_t> glfw_modifiers;
-    std::vector<uint32_t> glfw_keys;
-    std::vector<std::string> glfw_str_keys;
+    int toggle_modifier_selected = -1, toggle_key_selected = -1;
 };

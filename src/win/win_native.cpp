@@ -80,6 +80,8 @@ void WinNative::RegisterHotKey(uint32_t key, uint32_t modifier) {
         }
         if (::RegisterHotKey(reg_window_, id, modifier, key))
             printf("Registered: %s\n", key_combo.c_str());
+        else
+            printf("RegisterHotKey failed: %d for %s\n", GetLastError(), key_combo.c_str());
     }
 }
 

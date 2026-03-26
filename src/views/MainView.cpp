@@ -1,6 +1,7 @@
 #include "MainView.h"
 
 #include "imgui.h"
+
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -18,54 +19,98 @@ constexpr int kLeftMouseBtnIndex = 0;
 constexpr int kRightMouseBtnIndex = 1;
 constexpr int kMiddleMouseBtnIndex = 2;
 
+struct GlfwAndKeys {
+    std::unordered_map<int, int> scancodes_to_glfw{};
+    const char* toggle_modifiers[3] = { "Control", "Shift", "Alt" };
+    int glfw_toggle_modifiers[3] = { -1, -1, -1 };
+    std::vector<int> glfw_toggle_keys_order{};
+    std::unordered_map<int, std::string> glfw_toggle_keys{};
+
+    GlfwAndKeys() {
+		// toggle modifiers are control, shift and alt
+        glfw_toggle_modifiers[0] = glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL);
+        glfw_toggle_modifiers[1] = glfwGetKeyScancode(GLFW_KEY_LEFT_SHIFT);
+        glfw_toggle_modifiers[2] = glfwGetKeyScancode(GLFW_KEY_LEFT_ALT);
+        scancodes_to_glfw[glfw_toggle_modifiers[0]] = GLFW_KEY_LEFT_CONTROL;
+        scancodes_to_glfw[glfw_toggle_modifiers[1]] = GLFW_KEY_LEFT_SHIFT;
+        scancodes_to_glfw[glfw_toggle_modifiers[2]] = GLFW_KEY_LEFT_ALT;
+
+        std::unordered_map<std::string, int> used_key_names;
+		// function keys
+        for (int f_key = GLFW_KEY_F1; f_key <= GLFW_KEY_F25; f_key++) {
+            int scan_code = glfwGetKeyScancode(f_key);
+            if (scan_code >= 0) {
+                std::string str = ("F" + std::to_string(f_key + 1 - GLFW_KEY_F1));
+
+                if (used_key_names.find(str) != used_key_names.end()) {
+                    str += " (" + std::to_string(scan_code) + ")";
+                }
+                else {
+                    used_key_names[str] = scan_code;
+                }
+
+				glfw_toggle_keys_order.push_back(scan_code);
+                glfw_toggle_keys.insert_or_assign(scan_code, str);
+                scancodes_to_glfw[scan_code] = f_key;
+            }
+        }
+        // normal keys
+        for (auto key = GLFW_KEY_COMMA; key <= GLFW_KEY_GRAVE_ACCENT; key++) {
+            int scan_code = glfwGetKeyScancode(key);
+            if (scan_code >= 0) {
+                auto raw_str = glfwGetKeyName(key, scan_code);
+                if (raw_str && strlen(raw_str) > 0) {
+                    std::string str = raw_str;
+                    if (used_key_names.find(str) != used_key_names.end()) {
+                        str += " (" + std::to_string(scan_code) + ")";
+                    }
+                    else {
+                        used_key_names[str] = scan_code;
+                    }
+
+                    glfw_toggle_keys_order.push_back(scan_code);
+                    glfw_toggle_keys.insert_or_assign(scan_code, str);
+                }
+                scancodes_to_glfw[scan_code] = key;
+            }
+        }
+		// numpad keys
+        for (int kp_key = GLFW_KEY_KP_0; kp_key <= GLFW_KEY_KP_EQUAL; kp_key++) {
+            int scan_code = glfwGetKeyScancode(kp_key);
+            if (scan_code >= 0) {
+                auto raw_str = glfwGetKeyName(kp_key, scan_code);
+                if (raw_str && strlen(raw_str) > 0) {
+                    std::string str = raw_str;
+                    if (used_key_names.find(str) != used_key_names.end()) {
+                        str += " (KP)";
+                    }
+                    else {
+                        used_key_names[str] = scan_code;
+                    }
+
+                    glfw_toggle_keys_order.push_back(scan_code);
+                    glfw_toggle_keys.insert_or_assign(scan_code, str);
+                }
+                scancodes_to_glfw[scan_code] = kp_key;
+            }
+        }
+		// space key
+        glfw_toggle_keys.insert_or_assign(glfwGetKeyScancode(GLFW_KEY_SPACE), "SPACE");
+	}
+
+    static GlfwAndKeys& GetInstance() {
+        static GlfwAndKeys instance;
+        return instance;
+	}
+};
+
 MainView::MainView() {
     IMGUI_CHECKVERSION();
     name_ = "Main";
 
-    glfw_modifiers = std::vector<uint32_t>{(uint32_t)glfwGetKeyScancode(GLFW_KEY_LEFT_CONTROL),
-                                           (uint32_t)glfwGetKeyScancode(GLFW_KEY_LEFT_SHIFT),
-                                           (uint32_t)glfwGetKeyScancode(GLFW_KEY_LEFT_ALT)};
+	// initialize the mapping of glfw keys and modifiers to their scancodes and names
+    (void)GlfwAndKeys::GetInstance();
 
-    scancodes_to_glfw_[glfw_modifiers[0]] = GLFW_KEY_LEFT_CONTROL;
-    scancodes_to_glfw_[glfw_modifiers[1]] = GLFW_KEY_LEFT_SHIFT;
-    scancodes_to_glfw_[glfw_modifiers[2]] = GLFW_KEY_LEFT_ALT;
-
-    for (int f_key = GLFW_KEY_F1; f_key <= GLFW_KEY_F25; f_key++) {
-        int scan_code = glfwGetKeyScancode(f_key);
-        if (scan_code) {
-            std::string str = ("F" + std::to_string(f_key + 1 - GLFW_KEY_F1));
-            glfw_str_keys.push_back(str);
-            glfw_keys.push_back(scan_code);
-            scancodes_to_glfw_[scan_code] = f_key;
-        }
-    }
-
-    for (int kp_key = GLFW_KEY_KP_0; kp_key <= GLFW_KEY_KP_EQUAL; kp_key++) {
-        int scan_code = glfwGetKeyScancode(kp_key);
-        if (scan_code) {
-            auto str = glfwGetKeyName(kp_key, scan_code);
-            if (str) {
-                glfw_str_keys.push_back(str);
-                glfw_keys.push_back(scan_code);
-            }
-            scancodes_to_glfw_[scan_code] = kp_key;
-        }
-    }
-
-    glfw_str_keys.push_back("SPACE");
-    glfw_keys.push_back(glfwGetKeyScancode(GLFW_KEY_SPACE));
-
-    for (auto key = GLFW_KEY_COMMA; key <= GLFW_KEY_GRAVE_ACCENT; key++) {
-        int scan_code = glfwGetKeyScancode(key);
-        if (scan_code) {
-            auto str = glfwGetKeyName(key, scan_code);
-            if (str) {
-                glfw_str_keys.push_back(str);
-                glfw_keys.push_back(scan_code);
-            }
-            scancodes_to_glfw_[scan_code] = key;
-        }
-    }
     /* get the default toggle keys */
     GetToggleKeys();
 
@@ -108,8 +153,6 @@ static bool STDInputText(const char* label, std::string* str, ImGuiInputTextFlag
 void MainView::Show() {
     ImGuiIO& io = ImGui::GetIO();
 
-    io.IniFilename = nullptr;
-
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
                             ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y), ImGuiCond_Always);
@@ -134,42 +177,44 @@ void MainView::Show() {
             "Choose this carefully. Make sure no other application is\nusing the same hotkey.");
     ImGui::Text("Modifier: ");
     ImGui::SameLine();
-    if (ImGui::BeginCombo("##modifier_combo", modifiers[modifier_selected])) {
-        for (int n = 0; n < IM_ARRAYSIZE(modifiers); n++) {
-            bool is_selected = modifier_selected == n;
-            if (ImGui::Selectable(modifiers[n], is_selected))
-                modifier_selected = n;
+    if (ImGui::BeginCombo("##modifier_combo", GlfwAndKeys::GetInstance().toggle_modifiers[toggle_modifier_selected])) {
+        for (int n = 0; n < IM_ARRAYSIZE(GlfwAndKeys::GetInstance().toggle_modifiers); n++) {
+            bool is_selected = toggle_modifier_selected == n;
+            if (ImGui::Selectable(GlfwAndKeys::GetInstance().toggle_modifiers[n], is_selected))
+                toggle_modifier_selected = n;
             if (is_selected)
                 ImGui::SetItemDefaultFocus();
         }
         ImGui::EndCombo();
     }
 
-    if (Config::Current()->TOGGLE_MODIFIER != glfw_modifiers[modifier_selected]) {
+    if (toggle_modifier_selected >= 0 && 
+        Config::Current()->TOGGLE_MODIFIER != GlfwAndKeys::GetInstance().glfw_toggle_modifiers[toggle_modifier_selected]) {
         Native::GetInstance()->UnregisterHotKey(Config::Current()->TOGGLE_KEY,
                                                 Config::Current()->TOGGLE_MODIFIER);
-        Config::Current()->TOGGLE_MODIFIER = glfw_modifiers[modifier_selected];
+        Config::Current()->TOGGLE_MODIFIER = GlfwAndKeys::GetInstance().glfw_toggle_modifiers[toggle_modifier_selected];
         Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY,
                                               Config::Current()->TOGGLE_MODIFIER);
     }
 
     ImGui::Text("Key:      ");
     ImGui::SameLine();
-    if (ImGui::BeginCombo("##key_combo", glfw_str_keys[key_selected].data())) {
-        for (int n = 0; n < (int)glfw_str_keys.size(); n++) {
-            bool is_selected = key_selected == n;
-            if (ImGui::Selectable(glfw_str_keys[n].data(), is_selected))
-                key_selected = n;
+    if (ImGui::BeginCombo("##key_combo", GlfwAndKeys::GetInstance().glfw_toggle_keys[toggle_key_selected].data())) {
+        for (auto& k : GlfwAndKeys::GetInstance().glfw_toggle_keys_order) {
+            const std::string& key_name = GlfwAndKeys::GetInstance().glfw_toggle_keys[k];
+            bool is_selected = toggle_key_selected == k;
+            if (ImGui::Selectable(key_name.data(), is_selected))
+                toggle_key_selected = k;
             if (is_selected)
-                ImGui::SetItemDefaultFocus();
+				ImGui::SetItemDefaultFocus();
         }
         ImGui::EndCombo();
     }
 
-    if (Config::Current()->TOGGLE_KEY != glfw_keys[key_selected]) {
+    if (toggle_key_selected >= 0 && Config::Current()->TOGGLE_KEY != toggle_key_selected) {
         Native::GetInstance()->UnregisterHotKey(Config::Current()->TOGGLE_KEY,
                                                 Config::Current()->TOGGLE_MODIFIER);
-        Config::Current()->TOGGLE_KEY = glfw_keys[key_selected];
+        Config::Current()->TOGGLE_KEY = toggle_key_selected;
         Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY,
                                               Config::Current()->TOGGLE_MODIFIER);
     }
@@ -214,10 +259,9 @@ void MainView::Show() {
     float delta_width = width * 0.5f;
 
     if (ImGui::Button("Default")) {
-        selected_keys_.clear();
-        modifier_selected = 0;
-        key_selected = 8;
         Application::GetInstance()->Reconfig();
+        selected_keys_.clear();
+        GetToggleKeys();
         GetRightStickButtons();
         GetMouseButtons();
     }
@@ -236,7 +280,7 @@ void MainView::Show() {
 
     ImGui::Text("Analog Properties");
 
-    ImGui::BeginChild("conf_input", ImVec2(width, height), true,
+    ImGui::BeginChild("##conf_input", ImVec2(width, height), true,
                       ImGuiWindowFlags_HorizontalScrollbar);
 
     ImGui::Text("Stick Keys:");
@@ -376,7 +420,7 @@ void MainView::Show() {
 
     ImGui::SameLine();
 
-    ImGui::BeginChild("analog_prop", ImVec2(width, height), true,
+    ImGui::BeginChild("##analog_prop", ImVec2(width, height), true,
                       ImGuiWindowFlags_HorizontalScrollbar);
 
     ImGui::Text("Deadzone:");
@@ -444,7 +488,7 @@ void MainView::Show() {
 
 void MainView::OnKeyRelease(int key, int scancode, int mods) {
     DEBUG_OUT("[OnKeyRelease] key %d scancode %d mods %d\n", key, scancode, mods);
-    if (scancode <= 0)
+    if (scancode < 0)
         return;
 
     if (key == GLFW_KEY_ESCAPE) {
@@ -468,11 +512,14 @@ void MainView::OnKeyRelease(int key, int scancode, int mods) {
                 if (mouse_btn_changing_[i]) {
                     switch (i) {
                     case kLeftMouseBtnIndex:
-                        Config::Current()->LEFT_MOUSE_KEY = 0;
+                        Config::Current()->LEFT_MOUSE_KEY = -1;
+                        break;
                     case kRightMouseBtnIndex:
-                        Config::Current()->RIGHT_MOUSE_KEY = 0;
+                        Config::Current()->RIGHT_MOUSE_KEY = -1;
+                        break;
                     case kMiddleMouseBtnIndex:
-                        Config::Current()->MIDDLE_MOUSE_KEY = 0;
+                        Config::Current()->MIDDLE_MOUSE_KEY = -1;
+                        break;
                     }
                 }
                 mouse_btn_changing_[i] = false;
@@ -484,7 +531,8 @@ void MainView::OnKeyRelease(int key, int scancode, int mods) {
         return;
     }
 
-    if ((int)Config::Current()->LEFT_MOUSE_KEY == scancode || selected_keys_[key] || scancodes_to_glfw_.find(scancode) == scancodes_to_glfw_.cend())
+    if ((int)Config::Current()->LEFT_MOUSE_KEY == scancode || selected_keys_[key] ||
+        GlfwAndKeys::GetInstance().scancodes_to_glfw.find(scancode) == GlfwAndKeys::GetInstance().scancodes_to_glfw.cend())
         return;
 
     for (int i = 0; i < 4; i++) {
@@ -534,25 +582,26 @@ void MainView::OnKeyRelease(int key, int scancode, int mods) {
 }
 
 void MainView::GetToggleKeys() {
-    auto current_modifier = Config::Current()->TOGGLE_MODIFIER;
-    auto current_key = Config::Current()->TOGGLE_KEY;
-    for (int i = 0; i < (int)glfw_modifiers.size(); i++) {
-        if (glfw_modifiers[i] == current_modifier) {
-            modifier_selected = i;
+    auto current_toggle_modifier = Config::Current()->TOGGLE_MODIFIER;
+    auto current_toggle_key = Config::Current()->TOGGLE_KEY;
+
+    for (int i = 0; i < IM_ARRAYSIZE(GlfwAndKeys::GetInstance().glfw_toggle_modifiers); i++) {
+        if (GlfwAndKeys::GetInstance().glfw_toggle_modifiers[i] == current_toggle_modifier) {
+            toggle_modifier_selected = i;
             break;
         }
     }
-    for (int i = 0; i < (int)glfw_keys.size(); i++) {
-        if (glfw_keys[i] == current_key) {
-            key_selected = i;
-            break;
-        }
-    }
+
+    if (GlfwAndKeys::GetInstance().glfw_toggle_keys.find(current_toggle_key) == GlfwAndKeys::GetInstance().glfw_toggle_keys.end()) {
+        current_toggle_key = glfwGetKeyScancode(current_toggle_key);
+	}
+
+    toggle_key_selected = current_toggle_key;
 }
 
 void MainView::GetRightStickButtons() {
-    for (auto& it : scancodes_to_glfw_) {
-        uint32_t scan_code = it.first;
+    for (auto& it : GlfwAndKeys::GetInstance().scancodes_to_glfw) {
+        int scan_code = it.first;
         int key = it.second;
         for (auto i = 0; i < 4; i++) {
             if (Config::Current()->RIGHT_STICK_KEYS[i] == scan_code) {
@@ -570,22 +619,22 @@ void MainView::GetRightStickButtons() {
 
 void MainView::GetMouseButtons() {
     for (int i = 0; i < 3; i++) {
-        auto scancode = 0u;
+        int scancode = -1;
         switch (i) {
-        case 0:
+        case kLeftMouseBtnIndex:
             scancode = Config::Current()->LEFT_MOUSE_KEY;
             break;
-        case 1:
+        case kRightMouseBtnIndex:
             scancode = Config::Current()->RIGHT_MOUSE_KEY;
             break;
-        case 2:
+        case kMiddleMouseBtnIndex:
             scancode = Config::Current()->MIDDLE_MOUSE_KEY;
             break;
         }
 
-        if (scancode == 0) {
+        if (scancode < 0) {
             mouse_btn_text_[i] = "None";
-            mouse_btn_key_codes_[i] = 0;
+            mouse_btn_key_codes_[i] = -1;
         }
         else {
             auto str = glfwGetKeyName(mouse_btn_key_codes_[i], scancode);
@@ -608,8 +657,8 @@ void MainView::SaveConfig() {
     Config::Current()->RIGHT_MOUSE_KEY = mouse_btn_key_codes_[1];
     Config::Current()->MIDDLE_MOUSE_KEY = mouse_btn_key_codes_[2];
 
-    Config::Current()->TOGGLE_MODIFIER = scancodes_to_glfw_[glfw_modifiers[modifier_selected]];
-    Config::Current()->TOGGLE_KEY = scancodes_to_glfw_[glfw_keys[key_selected]];
+    Config::Current()->TOGGLE_MODIFIER = GlfwAndKeys::GetInstance().scancodes_to_glfw[GlfwAndKeys::GetInstance().glfw_toggle_modifiers[toggle_modifier_selected]];
+    Config::Current()->TOGGLE_KEY = GlfwAndKeys::GetInstance().scancodes_to_glfw[toggle_key_selected];
 
     Config::Current()->Save(INI_FILE);
 }
