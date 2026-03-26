@@ -41,8 +41,12 @@ static Nob_File_Paths library_dirs = {0};
 #if defined(__APPLE__) || defined(__MACH__)
 
 #ifndef LLVM_TOOLCHAIN
-// Change this to your llvm toolchain directory, or define `LLVM_TOOLCHAIN`
+// Change this to the llvm toolchain directory, or define `LLVM_TOOLCHAIN`
+#if defined(__aarch64__) || defined(__arm64__)
+#define LLVM_TOOLCHAIN "/opt/homebrew/opt/llvm"
+#else
 #define LLVM_TOOLCHAIN "/usr/local/opt/llvm"
+#endif // AARCH64/ARM64
 #endif // LLVM_TOOLCHAIN
 
 #define TARGET_NAME "macos"

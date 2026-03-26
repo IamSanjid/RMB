@@ -38,12 +38,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-13        # x86_64 runner
+          - os: macos-latest-intel  # x86_64 runner
             os-name: macos
             arch: x64
             artifact: RMB
 
-          - os: macos-latest    # arm64 runner (M-series)
+          - os: macos-latest        # arm64 runner (M-series)
             os-name: macos
             arch: arm64
             artifact: RMB
@@ -79,12 +79,18 @@ jobs:
       - name: Install dependencies (Linux)
         if: ${{ matrix.os-name == 'linux' }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt update
+          sudo apt install -y \
             build-essential \
             libx11-dev \
-            mesa-common-dev \
-            libxtst-dev
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxkbfile-dev \
+            libxi-dev \
+            libxext-dev \
+            libxtst-dev \
+            mesa-common-dev
 
       # ── Patch nob_config.h (never committed) ─────────────────────────────
 
@@ -108,18 +114,28 @@ jobs:
           cc nob.c -o nob
           ./nob
 
+      - name: Setup MSVC environment (Windows)
+        if: ${{ matrix.os-name == 'windows' }}
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: "2022"
+
       - name: Build (Windows)
         if: ${{ matrix.os-name == 'windows' }}
-        shell: cmd
+        shell: pwsh
         run: |
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64 -SkipAutomaticLocation
           cl nob.c /Fe:nob.exe
-          nob.exe
+          .\nob.exe
+
 
       # ── Resolve artifact output path ──────────────────────────────────────
 
       - name: Set artifact path
         id: paths
         shell: bash
+        if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'pre-release' }}
         run: |
           if [ "${{ github.event.inputs.build_type }}" == "normal" ]; then
             CONFIG="Debug"
@@ -128,7 +144,7 @@ jobs:
           fi
 
           PLATFORM="${{ matrix.os-name }}-${{ matrix.arch }}"
-          ARTIFACT_PATH="build/${CONFIG}/${PLATFORM}/${{ matrix.artifact }}"
+          ARTIFACT_PATH="build/RMB/${CONFIG}/${PLATFORM}/${{ matrix.artifact }}"
 
           echo "artifact_path=${ARTIFACT_PATH}" >> $GITHUB_OUTPUT
           echo "platform=${PLATFORM}" >> $GITHUB_OUTPUT
@@ -137,6 +153,7 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'pre-release' }}
         with:
           name: RMB-${{ steps.paths.outputs.platform }}
           path: ${{ steps.paths.outputs.artifact_path }}

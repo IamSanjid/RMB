@@ -21,11 +21,11 @@
 #include "Config.h"
 #include "Utils.h"
 #include "mouse.h"
-#include "native.h"
 #include "npad_controller.h"
 #include "views/MainView.h"
 
 #include <thread>
+#include <chrono>
 #include <stdio.h>
 
 static int screen_center_x_ = 0;
@@ -59,7 +59,7 @@ Application* Application::instance_ = nullptr;
 
 Application::Application() {
     instance_ = this;
-    GetTotalRunningTime();
+    (void)GetTotalRunningTime();
 }
 
 Application::~Application() {

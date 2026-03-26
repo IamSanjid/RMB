@@ -54,8 +54,8 @@ Output directory: `build/RMB/(Debug|Release)/(platform-x64)/RMB(.exe if windows)
         - After running `nob` or the above command you can also directly use Visual Studio to build.
 * Linux:
   - Install libx11, mesa and libxtst libs on your Linux machine.
-    - On Debian/Ubuntu based Linux distros run `sudo apt install libx11-dev mesa-common-dev libxtst-dev`.
-    - On Arch Linux based Linux distros run `sudo pacman -Syu base-devel libx11 mesa libxtst`.
+    - On Debian/Ubuntu based Linux distros run `sudo apt install libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxkbfile-dev libxi-dev libxext-dev libxtst-dev mesa-common-dev`.
+    - On Arch Linux based Linux distros run `sudo pacman -Syu base-devel libx11 libxcursor libxrandr libxinerama libxkbfile libxi libxext libxtst mesa`.
   - After installing these libs simply run `cc nob.c -o nob && nob` on the directory.
 * For other OSs/Platforms you need to implement all these stuff listed [here](#for-other-platforms). You also going to need GLFW 3.3+ lib for the corresponding platform/os.
 
@@ -64,13 +64,17 @@ Output directory: `build/RMB/(Debug|Release)/(platform-x64)/RMB(.exe if windows)
 <br>
 After some requests for macOS support here we are.<br>
 Haven't tested properly at all(Can't test in a real environment, don't own a mac device).<br>
-Apple's clang doesn't support c++ 20's `jthread` so we've to use LLVM's clang to build it.<br>
+Apple's clang doesn't support c++ 20's `jthread`, so we've to use LLVM's clang to build it.<br>
 The follwing steps worked on Tahoe 26.1 should be fine for anything from macOS 12.0(though 10.x-11.x should work in theory) to latest.
   - Need [HomeBrew](https://brew.sh/)
   - Make sure everything is fine by running `cc --version` you should see some version output. If not then [HomeBrew](https://brew.sh/) was not installed successfully, try again.
   - `brew install llvm` - need llvm version 20+ and its toolchain.
   - Run: `git clone --depth=1 https://github.com/IamSanjid/RMB.git && cd RMB`
-    - If you've installed llvm to a different directory other than the default directory(usually default directory is `/usr/local/opt/llvm`, check clang version by running `/usr/local/opt/llvm/bin/clang++ --version`), please change the value of `LLVM_TOOLCHAIN` at `.nob/nob_config.h`, just update the value between the double quotes (").
+    - If you've installed llvm to a different directory other than the default homebrew directory(usually its `/usr/local/opt/llvm` for x86_64 or `/opt/homebrew/opt/llvm` for M* chips or arm64), please add the following at the beggining of
+    `.nob/nob_config.h`
+    ```c
+    #define LLVM_TOOLCHAIN "<path>"
+    ```.
       - `brew --prefix llvm` will output the directory.
   - Run: `cc -o nob nob.c && ./nob`, should succeed with some compiler warnings most of them are safe to ignore.
   - Confirm by running:

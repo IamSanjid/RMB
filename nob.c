@@ -197,13 +197,21 @@ bool unix_find_glfw_required_x11_paths(char** include_dir, char** libs_dir) {
     static const char* x11_lib_search_dirs[] = {"/usr/pkg/xorg/lib", "/usr/X11R6/lib",
                                                 "/usr/X11R7/lib", "/usr/openwin/lib",
                                                 "/opt/X11/lib"};
+    // These are the headers we need for the linux native implementation and glfw; `src/linux/*`.
     static const char* x11_required_header_files[] = {"X11/X.h",
-                                                      "X11/extensions/Xrandr.h",
-                                                      "X11/extensions/Xinerama.h",
+                                                      "X11/Xlib.h",
+                                                      "X11/Xutil.h",
+                                                      "X11/XKBlib.h",
+                                                      "X11/Xlibint.h",
                                                       "X11/extensions/XKB.h",
                                                       "X11/Xcursor/Xcursor.h",
+                                                      "X11/extensions/shape.h",
+                                                      "X11/extensions/XTest.h",
+                                                      "X11/extensions/record.h",
+                                                      "X11/extensions/Xrandr.h",
                                                       "X11/extensions/XInput.h",
-                                                      "X11/extensions/shape.h"};
+                                                      "X11/extensions/XInput2.h",
+                                                      "X11/extensions/Xinerama.h"};
     static const char* x11_lib_files[] = {"libX11.so", "libX11.a", "libX11"};
 
     bool result = true;
