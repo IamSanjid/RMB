@@ -14,6 +14,10 @@
 
 const char* INI_FILE = "RMB.ini";
 
+constexpr int kLeftMouseBtnIndex = 0;
+constexpr int kRightMouseBtnIndex = 1;
+constexpr int kMiddleMouseBtnIndex = 2;
+
 MainView::MainView() {
     IMGUI_CHECKVERSION();
     name_ = "Main";
@@ -103,7 +107,6 @@ static bool STDInputText(const char* label, std::string* str, ImGuiInputTextFlag
 
 void MainView::Show() {
     ImGuiIO& io = ImGui::GetIO();
-    auto current_config = Config::Current();
 
     io.IniFilename = nullptr;
 
@@ -120,7 +123,7 @@ void MainView::Show() {
     }
 
     ImGui::Text("Target Window:");
-    STDInputText("##target_window", &current_config->TARGET_NAME);
+    STDInputText("##target_window", &Config::Current()->TARGET_NAME);
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("The target Emulator Window name.");
 
@@ -142,12 +145,12 @@ void MainView::Show() {
         ImGui::EndCombo();
     }
 
-    if (current_config->TOGGLE_MODIFIER != glfw_modifiers[modifier_selected]) {
-        Native::GetInstance()->UnregisterHotKey(current_config->TOGGLE_KEY,
-                                                current_config->TOGGLE_MODIFIER);
-        current_config->TOGGLE_MODIFIER = glfw_modifiers[modifier_selected];
-        Native::GetInstance()->RegisterHotKey(current_config->TOGGLE_KEY,
-                                              current_config->TOGGLE_MODIFIER);
+    if (Config::Current()->TOGGLE_MODIFIER != glfw_modifiers[modifier_selected]) {
+        Native::GetInstance()->UnregisterHotKey(Config::Current()->TOGGLE_KEY,
+                                                Config::Current()->TOGGLE_MODIFIER);
+        Config::Current()->TOGGLE_MODIFIER = glfw_modifiers[modifier_selected];
+        Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY,
+                                              Config::Current()->TOGGLE_MODIFIER);
     }
 
     ImGui::Text("Key:      ");
@@ -163,39 +166,39 @@ void MainView::Show() {
         ImGui::EndCombo();
     }
 
-    if (current_config->TOGGLE_KEY != glfw_keys[key_selected]) {
-        Native::GetInstance()->UnregisterHotKey(current_config->TOGGLE_KEY,
-                                                current_config->TOGGLE_MODIFIER);
-        current_config->TOGGLE_KEY = glfw_keys[key_selected];
-        Native::GetInstance()->RegisterHotKey(current_config->TOGGLE_KEY,
-                                              current_config->TOGGLE_MODIFIER);
+    if (Config::Current()->TOGGLE_KEY != glfw_keys[key_selected]) {
+        Native::GetInstance()->UnregisterHotKey(Config::Current()->TOGGLE_KEY,
+                                                Config::Current()->TOGGLE_MODIFIER);
+        Config::Current()->TOGGLE_KEY = glfw_keys[key_selected];
+        Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY,
+                                              Config::Current()->TOGGLE_MODIFIER);
     }
 
     ImGui::NewLine();
 
-    ImGui::Checkbox("Hide Mouse on inactivity", &current_config->HIDE_MOUSE);
+    ImGui::Checkbox("Hide Mouse on inactivity", &Config::Current()->HIDE_MOUSE);
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Hides the normal mouse cursor on inactivity.");
-    ImGui::Checkbox("Auto Focus Emulator Window", &current_config->AUTO_FOCUS_EMU_WINDOW);
+    ImGui::Checkbox("Auto Focus Emulator Window", &Config::Current()->AUTO_FOCUS_EMU_WINDOW);
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip(
             "Tries to focus the Target Emulator Window after enabling\nmouse panning.");
-    ImGui::Checkbox("Bind Mouse Buttons", &current_config->BIND_MOUSE_BUTTON);
+    ImGui::Checkbox("Bind Mouse Buttons", &Config::Current()->BIND_MOUSE_BUTTON);
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Enable binding mouse buttons to keyboard keys.");
-    if (ImGui::Checkbox("Persistant Key Press", &current_config->PERSISTANT_KEY_PRESS)) {
+    if (ImGui::Checkbox("Persistant Key Press", &Config::Current()->PERSISTANT_KEY_PRESS)) {
         Application::GetInstance()->GetController()->SetPersistentMode(
-            current_config->PERSISTANT_KEY_PRESS);
+            Config::Current()->PERSISTANT_KEY_PRESS);
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Continiously presses keys, might be useful\nfor some emulators.");
 
     ImGui::Text("Sensitivity(%%):");
-    if (ImGui::InputFloat("##sensitivity", &current_config->SENSITIVITY, 0.5f, 3.5f, "%0.3f")) {
-        if (current_config->SENSITIVITY < 1.f)
-            current_config->SENSITIVITY = 1.f;
-        else if (current_config->SENSITIVITY > 100.f)
-            current_config->SENSITIVITY = 100.f;
+    if (ImGui::InputFloat("##sensitivity", &Config::Current()->SENSITIVITY, 0.5f, 3.5f, "%0.3f")) {
+        if (Config::Current()->SENSITIVITY < 1.f)
+            Config::Current()->SENSITIVITY = 1.f;
+        else if (Config::Current()->SENSITIVITY > 100.f)
+            Config::Current()->SENSITIVITY = 100.f;
     }
 
     if (ImGui::IsItemHovered())
@@ -275,11 +278,11 @@ void MainView::Show() {
             }
             else {
                 selected_keys_[r_btn_key_codes_[i]] = true;
-                auto str = glfwGetKeyName(r_btn_key_codes_[i], current_config->RIGHT_STICK_KEYS[i]);
+                auto str = glfwGetKeyName(r_btn_key_codes_[i], Config::Current()->RIGHT_STICK_KEYS[i]);
                 if (str)
                     r_btn_text_[i] = std::string(str);
                 else
-                    r_btn_text_[i] = std::to_string(current_config->RIGHT_STICK_KEYS[i]);
+                    r_btn_text_[i] = std::to_string(Config::Current()->RIGHT_STICK_KEYS[i]);
                 any_r_btn_chaniging_ = false;
             }
         }
@@ -324,16 +327,16 @@ void MainView::Show() {
         }
 
         switch (i) {
-        case 0:
-            scancode = current_config->LEFT_MOUSE_KEY;
+        case kLeftMouseBtnIndex:
+            scancode = Config::Current()->LEFT_MOUSE_KEY;
             btn = "Left Mouse";
             break;
-        case 1:
-            scancode = current_config->RIGHT_MOUSE_KEY;
+        case kRightMouseBtnIndex:
+            scancode = Config::Current()->RIGHT_MOUSE_KEY;
             btn = "Right Mouse";
             break;
-        case 2:
-            scancode = current_config->MIDDLE_MOUSE_KEY;
+        case kMiddleMouseBtnIndex:
+            scancode = Config::Current()->MIDDLE_MOUSE_KEY;
             btn = "Middle Mouse";
             break;
         }
@@ -377,52 +380,52 @@ void MainView::Show() {
                       ImGuiWindowFlags_HorizontalScrollbar);
 
     ImGui::Text("Deadzone:");
-    if (ImGui::InputFloat("##deadzone", &current_config->DEADZONE, 0.05f, 0.2f, "%0.4f")) {
-        if (current_config->DEADZONE < 0.f)
-            current_config->DEADZONE = 0.f;
-        else if (current_config->DEADZONE > 1.f)
-            current_config->DEADZONE = 1.f;
+    if (ImGui::InputFloat("##deadzone", &Config::Current()->DEADZONE, 0.05f, 0.2f, "%0.4f")) {
+        if (Config::Current()->DEADZONE < 0.f)
+            Config::Current()->DEADZONE = 0.f;
+        else if (Config::Current()->DEADZONE > 1.f)
+            Config::Current()->DEADZONE = 1.f;
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Deadzone for X and Y axis.");
 
     ImGui::Text("Range:");
-    if (ImGui::InputFloat("##range", &current_config->RANGE, 0.05f, 0.2f, "%0.4f")) {
-        if (current_config->RANGE < 0.25f)
-            current_config->RANGE = 0.25f;
-        else if (current_config->RANGE > 1.50f)
-            current_config->RANGE = 1.50f;
+    if (ImGui::InputFloat("##range", &Config::Current()->RANGE, 0.05f, 0.2f, "%0.4f")) {
+        if (Config::Current()->RANGE < 0.25f)
+            Config::Current()->RANGE = 0.25f;
+        else if (Config::Current()->RANGE > 1.50f)
+            Config::Current()->RANGE = 1.50f;
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Range for X and Y axis.");
 
     /*ImGui::Text("Threshold:");
-    if (ImGui::InputFloat("##threshold", &current_config->THRESHOLD, 0.1f, 1.f, "%0.4f"))
+    if (ImGui::InputFloat("##threshold", &Config::Current()->THRESHOLD, 0.1f, 1.f, "%0.4f"))
     {
-        if (current_config->DEADZONE < 0.25f)
-            current_config->DEADZONE = 0.25f;
-        else if (current_config->DEADZONE > 1.50f)
-            current_config->DEADZONE = 1.50f;
+        if (Config::Current()->DEADZONE < 0.25f)
+            Config::Current()->DEADZONE = 0.25f;
+        else if (Config::Current()->DEADZONE > 1.50f)
+            Config::Current()->DEADZONE = 1.50f;
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Threshold for X and Y axis.");*/
 
     ImGui::Text("X Offset:");
-    if (ImGui::InputFloat("##x_offset", &current_config->X_OFFSET, 0.05f, 0.2f, "%0.4f")) {
-        if (current_config->X_OFFSET < -1.f)
-            current_config->X_OFFSET = -1.f;
-        else if (current_config->X_OFFSET > 1.f)
-            current_config->X_OFFSET = 1.f;
+    if (ImGui::InputFloat("##x_offset", &Config::Current()->X_OFFSET, 0.05f, 0.2f, "%0.4f")) {
+        if (Config::Current()->X_OFFSET < -1.f)
+            Config::Current()->X_OFFSET = -1.f;
+        else if (Config::Current()->X_OFFSET > 1.f)
+            Config::Current()->X_OFFSET = 1.f;
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Offset for X axis.");
 
     ImGui::Text("Y Offset:");
-    if (ImGui::InputFloat("##y_offset", &current_config->Y_OFFSET, 0.05f, 0.2f, "%0.4f")) {
-        if (current_config->Y_OFFSET < -1.f)
-            current_config->Y_OFFSET = -1.f;
-        else if (current_config->Y_OFFSET > 1.f)
-            current_config->Y_OFFSET = 1.f;
+    if (ImGui::InputFloat("##y_offset", &Config::Current()->Y_OFFSET, 0.05f, 0.2f, "%0.4f")) {
+        if (Config::Current()->Y_OFFSET < -1.f)
+            Config::Current()->Y_OFFSET = -1.f;
+        else if (Config::Current()->Y_OFFSET > 1.f)
+            Config::Current()->Y_OFFSET = 1.f;
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Offset for Y axis.");
@@ -439,12 +442,10 @@ void MainView::Show() {
     ImGui::End();
 }
 
-void MainView::OnKeyPress(int key, int scancode, int mods) {
-    DEBUG_OUT("[OnKeyPress] key %d scancode %d mods %d\n", key, scancode, mods);
+void MainView::OnKeyRelease(int key, int scancode, int mods) {
+    DEBUG_OUT("[OnKeyRelease] key %d scancode %d mods %d\n", key, scancode, mods);
     if (scancode <= 0)
         return;
-
-    auto current_config = Config::Current();
 
     if (key == GLFW_KEY_ESCAPE) {
         for (int i = 0; i < 4; i++) {
@@ -466,12 +467,12 @@ void MainView::OnKeyPress(int key, int scancode, int mods) {
             if (i < 3) {
                 if (mouse_btn_changing_[i]) {
                     switch (i) {
-                    case 0:
-                        current_config->LEFT_MOUSE_KEY = 0;
-                    case 1:
-                        current_config->RIGHT_MOUSE_KEY = 0;
-                    case 2:
-                        current_config->MIDDLE_MOUSE_KEY = 0;
+                    case kLeftMouseBtnIndex:
+                        Config::Current()->LEFT_MOUSE_KEY = 0;
+                    case kRightMouseBtnIndex:
+                        Config::Current()->RIGHT_MOUSE_KEY = 0;
+                    case kMiddleMouseBtnIndex:
+                        Config::Current()->MIDDLE_MOUSE_KEY = 0;
                     }
                 }
                 mouse_btn_changing_[i] = false;
@@ -483,7 +484,7 @@ void MainView::OnKeyPress(int key, int scancode, int mods) {
         return;
     }
 
-    if (selected_keys_[key] || scancodes_to_glfw_.find(scancode) == scancodes_to_glfw_.cend())
+    if ((int)Config::Current()->LEFT_MOUSE_KEY == scancode || selected_keys_[key] || scancodes_to_glfw_.find(scancode) == scancodes_to_glfw_.cend())
         return;
 
     for (int i = 0; i < 4; i++) {
@@ -500,7 +501,7 @@ void MainView::OnKeyPress(int key, int scancode, int mods) {
             r_btn_key_codes_[i] = key;
             selected_keys_[key] = true;
 
-            current_config->RIGHT_STICK_KEYS[i] = scancode;
+            Config::Current()->RIGHT_STICK_KEYS[i] = scancode;
             return;
         }
 
@@ -518,14 +519,14 @@ void MainView::OnKeyPress(int key, int scancode, int mods) {
             selected_keys_[key] = true;
 
             switch (i) {
-            case 0:
-                current_config->LEFT_MOUSE_KEY = scancode;
+            case kLeftMouseBtnIndex:
+                Config::Current()->LEFT_MOUSE_KEY = scancode;
                 return;
-            case 1:
-                current_config->RIGHT_MOUSE_KEY = scancode;
+            case kRightMouseBtnIndex:
+                Config::Current()->RIGHT_MOUSE_KEY = scancode;
                 return;
-            case 2:
-                current_config->MIDDLE_MOUSE_KEY = scancode;
+            case kMiddleMouseBtnIndex:
+                Config::Current()->MIDDLE_MOUSE_KEY = scancode;
                 return;
             }
         }
@@ -533,10 +534,8 @@ void MainView::OnKeyPress(int key, int scancode, int mods) {
 }
 
 void MainView::GetToggleKeys() {
-    auto current_config = Config::Current();
-
-    auto current_modifier = current_config->TOGGLE_MODIFIER;
-    auto current_key = current_config->TOGGLE_KEY;
+    auto current_modifier = Config::Current()->TOGGLE_MODIFIER;
+    auto current_key = Config::Current()->TOGGLE_KEY;
     for (int i = 0; i < (int)glfw_modifiers.size(); i++) {
         if (glfw_modifiers[i] == current_modifier) {
             modifier_selected = i;
@@ -552,13 +551,11 @@ void MainView::GetToggleKeys() {
 }
 
 void MainView::GetRightStickButtons() {
-    auto current_config = Config::Current();
-
     for (auto& it : scancodes_to_glfw_) {
         uint32_t scan_code = it.first;
         int key = it.second;
         for (auto i = 0; i < 4; i++) {
-            if (current_config->RIGHT_STICK_KEYS[i] == scan_code) {
+            if (Config::Current()->RIGHT_STICK_KEYS[i] == scan_code) {
                 auto str = glfwGetKeyName(key, scan_code);
                 r_btn_key_codes_[i] = key;
                 selected_keys_[r_btn_key_codes_[i]] = true;
@@ -572,19 +569,17 @@ void MainView::GetRightStickButtons() {
 }
 
 void MainView::GetMouseButtons() {
-    auto current_config = Config::Current();
-
     for (int i = 0; i < 3; i++) {
         auto scancode = 0u;
         switch (i) {
         case 0:
-            scancode = current_config->LEFT_MOUSE_KEY;
+            scancode = Config::Current()->LEFT_MOUSE_KEY;
             break;
         case 1:
-            scancode = current_config->RIGHT_MOUSE_KEY;
+            scancode = Config::Current()->RIGHT_MOUSE_KEY;
             break;
         case 2:
-            scancode = current_config->MIDDLE_MOUSE_KEY;
+            scancode = Config::Current()->MIDDLE_MOUSE_KEY;
             break;
         }
 
@@ -605,20 +600,18 @@ void MainView::GetMouseButtons() {
 }
 
 void MainView::SaveConfig() {
-    auto current_config = Config::Current();
-
     for (int i = 0; i < 4; i++) {
-        current_config->RIGHT_STICK_KEYS[i] = r_btn_key_codes_[i];
+        Config::Current()->RIGHT_STICK_KEYS[i] = r_btn_key_codes_[i];
     }
 
-    current_config->LEFT_MOUSE_KEY = mouse_btn_key_codes_[0];
-    current_config->RIGHT_MOUSE_KEY = mouse_btn_key_codes_[1];
-    current_config->MIDDLE_MOUSE_KEY = mouse_btn_key_codes_[2];
+    Config::Current()->LEFT_MOUSE_KEY = mouse_btn_key_codes_[0];
+    Config::Current()->RIGHT_MOUSE_KEY = mouse_btn_key_codes_[1];
+    Config::Current()->MIDDLE_MOUSE_KEY = mouse_btn_key_codes_[2];
 
-    current_config->TOGGLE_MODIFIER = scancodes_to_glfw_[glfw_modifiers[modifier_selected]];
-    current_config->TOGGLE_KEY = scancodes_to_glfw_[glfw_keys[key_selected]];
+    Config::Current()->TOGGLE_MODIFIER = scancodes_to_glfw_[glfw_modifiers[modifier_selected]];
+    Config::Current()->TOGGLE_KEY = scancodes_to_glfw_[glfw_keys[key_selected]];
 
-    current_config->Save(INI_FILE);
+    Config::Current()->Save(INI_FILE);
 }
 
 void MainView::ReadConfig() {

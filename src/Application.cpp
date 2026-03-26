@@ -31,15 +31,6 @@
 static int screen_center_x_ = 0;
 static int screen_center_y_ = 0;
 
-std::unique_ptr<Application> Application::Create() {
-    auto app = std::make_unique<Application>();
-    if (app->Initialize(Config::Current()->NAME, Config::Current()->WIDTH,
-                        Config::Current()->HEIGHT)) {
-        return app;
-    }
-    return nullptr;
-}
-
 Application* Application::GetInstance() {
     return instance_;
 }
@@ -163,6 +154,7 @@ void Application::Run() {
     auto update_thread = std::jthread{[this](std::stop_token stop_token) {
         while (!stop_token.stop_requested()) {
             Update();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         fprintf(stdout, "Exiting Application.\n");
     }};
@@ -195,8 +187,6 @@ void Application::Run() {
 void Application::Update() {
     Native::GetInstance()->Update();
     DetectMouseMove();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void Application::Reconfig(Config* new_conf) {
@@ -206,28 +196,26 @@ void Application::Reconfig(Config* new_conf) {
     if (new_conf)
         Config::Current(new_conf);
     else
-        Config::Current(Config::Default());
+        Config::Current(new Config());
 
-    auto current_config = Config::Current();
-
-    current_config->TOGGLE_KEY = glfwGetKeyScancode(current_config->TOGGLE_KEY);
-    current_config->TOGGLE_MODIFIER = glfwGetKeyScancode(current_config->TOGGLE_MODIFIER);
-    Native::GetInstance()->RegisterHotKey(current_config->TOGGLE_KEY,
-                                          current_config->TOGGLE_MODIFIER);
+    Config::Current()->TOGGLE_KEY = glfwGetKeyScancode(Config::Current()->TOGGLE_KEY);
+    Config::Current()->TOGGLE_MODIFIER = glfwGetKeyScancode(Config::Current()->TOGGLE_MODIFIER);
+    Native::GetInstance()->RegisterHotKey(Config::Current()->TOGGLE_KEY,
+                                          Config::Current()->TOGGLE_MODIFIER);
 
     for (auto i = 0; i < 4; i++) {
-        current_config->RIGHT_STICK_KEYS[i] =
-            glfwGetKeyScancode(current_config->RIGHT_STICK_KEYS[i]);
+        Config::Current()->RIGHT_STICK_KEYS[i] =
+            glfwGetKeyScancode(Config::Current()->RIGHT_STICK_KEYS[i]);
     }
 
-    if (current_config->LEFT_MOUSE_KEY)
-        current_config->LEFT_MOUSE_KEY = glfwGetKeyScancode(current_config->LEFT_MOUSE_KEY);
-    if (current_config->RIGHT_MOUSE_KEY)
-        current_config->RIGHT_MOUSE_KEY = glfwGetKeyScancode(current_config->RIGHT_MOUSE_KEY);
-    if (current_config->MIDDLE_MOUSE_KEY)
-        current_config->MIDDLE_MOUSE_KEY = glfwGetKeyScancode(current_config->MIDDLE_MOUSE_KEY);
+    if (Config::Current()->LEFT_MOUSE_KEY)
+        Config::Current()->LEFT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->LEFT_MOUSE_KEY);
+    if (Config::Current()->RIGHT_MOUSE_KEY)
+        Config::Current()->RIGHT_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->RIGHT_MOUSE_KEY);
+    if (Config::Current()->MIDDLE_MOUSE_KEY)
+        Config::Current()->MIDDLE_MOUSE_KEY = glfwGetKeyScancode(Config::Current()->MIDDLE_MOUSE_KEY);
 
-    controller_->SetPersistentMode(current_config->PERSISTANT_KEY_PRESS);
+    controller_->SetPersistentMode(Config::Current()->PERSISTANT_KEY_PRESS);
 }
 
 void Application::TogglePanning() {
@@ -374,8 +362,15 @@ void Application::UpdateMouseVisibility(double new_moved_time) {
 
 void Application::OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     (void)window;
-    (void)action;
-    if (action != GLFW_PRESS)
-        return;
-    GetInstance()->main_view_->OnKeyPress(key, scancode, mods);
+    switch (action) {
+    case GLFW_PRESS:
+        GetInstance()->main_view_->OnKeyPress(key, scancode, mods);
+        break;
+    case GLFW_RELEASE:
+        GetInstance()->main_view_->OnKeyRelease(key, scancode, mods);
+        break;
+    default:
+        // ignore
+        break;
+    }
 }

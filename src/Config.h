@@ -4,10 +4,10 @@
 
 class Config {
 public:
-    static Config* New();
-    static Config* Default();
     static Config* Current(Config* change = nullptr);
     static Config* LoadNew(const std::string& file);
+
+    Config();
 
     void Save(const std::string& file);
 
@@ -37,9 +37,4 @@ public:
     float THRESHOLD = 0.5f;
     float X_OFFSET = 0.0f;
     float Y_OFFSET = 0.0f;
-
-private:
-    Config();
-
-    static Config* default_instance_;
 };

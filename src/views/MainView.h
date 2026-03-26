@@ -13,7 +13,7 @@ public:
     ~MainView();
 
     void Show() override;
-    void OnKeyPress(int key, int scancode, int mods) override;
+    void OnKeyRelease(int key, int scancode, int mods) override;
     void SetSize(uint32_t width, uint32_t height) override {
         (void)width;
         (void)height;

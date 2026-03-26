@@ -30,8 +30,6 @@ struct ButtonStatus {
 class StickInputHandler {
 public:
     inline void OnChange(const StickStatus& status) {
-        auto config = Config::Current();
-
         auto value_x = status.x;
         auto value_y = status.y;
 
@@ -47,24 +45,24 @@ public:
         auto opposite_button_y = 5 - button_y;
 
         if (new_time_x == 0) {
-            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[button_x]);
+            KeyboardManager::GetInstance()->SendKeyUp(Config::Current()->RIGHT_STICK_KEYS[button_x]);
         }
         else if (timeouts_[button_x] == 0) {
-            KeyboardManager::GetInstance()->SendKeyDown(config->RIGHT_STICK_KEYS[button_x]);
+            KeyboardManager::GetInstance()->SendKeyDown(Config::Current()->RIGHT_STICK_KEYS[button_x]);
         }
 
         if (timeouts_[opposite_button_x])
-            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_x]);
+            KeyboardManager::GetInstance()->SendKeyUp(Config::Current()->RIGHT_STICK_KEYS[opposite_button_x]);
 
         if (new_time_y == 0) {
-            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[button_y]);
+            KeyboardManager::GetInstance()->SendKeyUp(Config::Current()->RIGHT_STICK_KEYS[button_y]);
         }
         else if (timeouts_[button_y] == 0) {
-            KeyboardManager::GetInstance()->SendKeyDown(config->RIGHT_STICK_KEYS[button_y]);
+            KeyboardManager::GetInstance()->SendKeyDown(Config::Current()->RIGHT_STICK_KEYS[button_y]);
         }
 
         if (timeouts_[opposite_button_y])
-            KeyboardManager::GetInstance()->SendKeyUp(config->RIGHT_STICK_KEYS[opposite_button_y]);
+            KeyboardManager::GetInstance()->SendKeyUp(Config::Current()->RIGHT_STICK_KEYS[opposite_button_y]);
 
         timeouts_[opposite_button_x] = 0;
         timeouts_[opposite_button_y] = 0;
@@ -100,7 +98,6 @@ void NpadController::SetStick(float raw_x, float raw_y) {
 
     DEBUG_OUT("new change: %f, %f\n", raw_x, raw_y);
 
-    auto current_config = Config::Current();
     last_raw_x_ = raw_x;
     last_raw_y_ = raw_y;
 
@@ -114,10 +111,10 @@ void NpadController::SetStick(float raw_x, float raw_y) {
     axes_.x = new_x;
     axes_.y = new_y;
 
-    axes_.right = last_x_ > current_config->THRESHOLD;
-    axes_.left = last_x_ < -current_config->THRESHOLD;
-    axes_.up = last_y_ > current_config->THRESHOLD;
-    axes_.down = last_y_ < -current_config->THRESHOLD;
+    axes_.right = last_x_ > Config::Current()->THRESHOLD;
+    axes_.left = last_x_ < -Config::Current()->THRESHOLD;
+    axes_.up = last_y_ > Config::Current()->THRESHOLD;
+    axes_.down = last_y_ < -Config::Current()->THRESHOLD;
 
     DEBUG_OUT_COND(axes_.x != 0 || axes_.y != 0, "axes_change: %f, %f - actual_value: %f, %f\n",
                    axes_.x, axes_.y, last_x_, last_y_);
@@ -147,7 +144,6 @@ void NpadController::ClearState() {
 }
 
 void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value) {
-    auto current_config = Config::Current();
     float& x = last_x_;
     float& y = last_y_;
 
@@ -158,24 +154,24 @@ void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value) {
         raw_y = 0;
     }
 
-    raw_x += current_config->X_OFFSET;
-    raw_y += current_config->Y_OFFSET;
+    raw_x += Config::Current()->X_OFFSET;
+    raw_y += Config::Current()->Y_OFFSET;
 
-    if (std::abs(current_config->X_OFFSET) < 0.75f) {
+    if (std::abs(Config::Current()->X_OFFSET) < 0.75f) {
         if (raw_x > 0) {
-            raw_x /= 1 + current_config->X_OFFSET;
+            raw_x /= 1 + Config::Current()->X_OFFSET;
         }
         else {
-            raw_x /= 1 - current_config->X_OFFSET;
+            raw_x /= 1 - Config::Current()->X_OFFSET;
         }
     }
 
-    if (std::abs(current_config->Y_OFFSET) < 0.75f) {
+    if (std::abs(Config::Current()->Y_OFFSET) < 0.75f) {
         if (raw_y > 0) {
-            raw_y /= 1 + current_config->Y_OFFSET;
+            raw_y /= 1 + Config::Current()->Y_OFFSET;
         }
         else {
-            raw_y /= 1 - current_config->Y_OFFSET;
+            raw_y /= 1 - Config::Current()->Y_OFFSET;
         }
     }
 
@@ -185,17 +181,17 @@ void NpadController::SanatizeAxes(float raw_x, float raw_y, bool clamp_value) {
     float r = x * x + y * y;
     r = std::sqrt(r);
 
-    if (r <= current_config->DEADZONE || current_config->DEADZONE >= 1.0f) {
+    if (r <= Config::Current()->DEADZONE || Config::Current()->DEADZONE >= 1.0f) {
         x = 0;
         y = 0;
         return;
     }
 
     const float deadzone_factor =
-        1.0f / r * (r - current_config->DEADZONE) / (1.0f - current_config->DEADZONE);
-    x = x * deadzone_factor / current_config->RANGE;
-    y = y * deadzone_factor / current_config->RANGE;
-    r = r * deadzone_factor / current_config->RANGE;
+        1.0f / r * (r - Config::Current()->DEADZONE) / (1.0f - Config::Current()->DEADZONE);
+    x = x * deadzone_factor / Config::Current()->RANGE;
+    y = y * deadzone_factor / Config::Current()->RANGE;
+    r = r * deadzone_factor / Config::Current()->RANGE;
 
     if (clamp_value && r > 1.0f) {
         x /= r;

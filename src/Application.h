@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include <cstdint>
 #include <string>
 
 struct GLFWwindow;
@@ -19,8 +19,6 @@ public:
     Application& operator=(const Application&) = delete;
 
     ~Application();
-
-    static std::unique_ptr<Application> Create();
 
     static Application* GetInstance();
     static double GetTotalRunningTime();

@@ -33,7 +33,7 @@ public:
         if (XRecordQueryVersion(record_display_, &major, &minor) != 0) {
             fprintf(stdout, "XRecord Version: %d, %d\n", minor, major);
 
-            XSynchronize(data_display_, True);
+            XSynchronize(data_display_, true);
 
             XRecordClientSpec clients = XRecordAllClients;
             auto range = XRecordAllocRange();
@@ -57,16 +57,18 @@ public:
             return;
         initialized_ = false;
 
-        XRecordState* state = (XRecordState*)malloc(sizeof(XRecordState));
+        XRecordState* state = nullptr;
         if (XRecordGetContext(record_display_, context_, &state) != 0) {
             if (state->enabled && XRecordDisableContext(record_display_, context_) != 0) {
-                XSync(record_display_, False);
+                XSync(record_display_, false);
             }
+            XRecordFreeState(state);
         }
-        free(state);
 
+        XRecordFreeContext(data_display_, context_);
         XCloseDisplay(data_display_);
         XCloseDisplay(record_display_);
+        context_ = 0;
         data_display_ = record_display_ = nullptr;
     }
 
@@ -154,7 +156,7 @@ LinuxNative::LinuxNative() {
         }
     }
 
-    XkbFreeClientMap(desc, 0, 1);
+    XkbFreeKeyboard(desc, 0, true);
 }
 
 LinuxNative::~LinuxNative() {
@@ -220,19 +222,19 @@ void LinuxNative::RegisterHotKey(uint32_t key, uint32_t modifier) {
         Window root_window = RootWindow(display_, screen);
 
         int error =
-            XGrabKey(display_, key, modmask, root_window, False, GrabModeAsync, GrabModeAsync);
-        error &= XGrabKey(display_, key, modmask | LockMask, root_window, False, GrabModeAsync,
+            XGrabKey(display_, key, modmask, root_window, false, GrabModeAsync, GrabModeAsync);
+        error &= XGrabKey(display_, key, modmask | LockMask, root_window, false, GrabModeAsync,
                           GrabModeAsync);
-        error &= XGrabKey(display_, key, modmask | Mod2Mask, root_window, False, GrabModeAsync,
+        error &= XGrabKey(display_, key, modmask | Mod2Mask, root_window, false, GrabModeAsync,
                           GrabModeAsync);
-        error &= XGrabKey(display_, key, modmask | LockMask | Mod2Mask, root_window, False,
+        error &= XGrabKey(display_, key, modmask | LockMask | Mod2Mask, root_window, false,
                           GrabModeAsync, GrabModeAsync);
         if (error <= 1) {
             fprintf(stdout, "Registered hot key: %d, %d\n", (int)key, (int)modifier);
             registered_keys_[hash] = {key, modifier};
         }
     }
-    XSync(display_, False);
+    XSync(display_, false);
     XFlush(display_);
 }
 
@@ -262,7 +264,7 @@ void LinuxNative::UnregisterHotKey(uint32_t key, uint32_t modifier) {
         XUngrabKey(display_, key, modmask | LockMask | Mod2Mask, root_window);
         registered_keys_.erase(hash);
     }
-    XSync(display_, False);
+    XSync(display_, false);
     XFlush(display_);
 }
 
@@ -316,7 +318,7 @@ NativeWindow LinuxNative::GetFocusedWindow() {
     Window active_window = 0;
 
     long nitems;
-    auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", False);
+    auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", false);
     auto root = XDefaultRootWindow(display_);
     auto data = GetWindowPropertyByAtom(root, request, &nitems, nullptr, nullptr);
     if (nitems > 0) {
@@ -340,8 +342,8 @@ bool LinuxNative::SetFocusOnWindow(const NativeWindow native_window) {
 }
 
 bool LinuxNative::IsMainWindowActive(const std::string& window_name) {
-    static auto atom_window_type_id = XInternAtom(display_, "_NET_WM_WINDOW_TYPE", True);
-    static auto atom_target_type = XInternAtom(display_, "_NET_WM_WINDOW_TYPE_NORMAL", True);
+    static auto atom_window_type_id = XInternAtom(display_, "_NET_WM_WINDOW_TYPE", true);
+    static auto atom_target_type = XInternAtom(display_, "_NET_WM_WINDOW_TYPE_NORMAL", true);
     if (!EWMHIsSupported("_NET_ACTIVE_WINDOW")) {
         return false;
     }
@@ -351,7 +353,7 @@ bool LinuxNative::IsMainWindowActive(const std::string& window_name) {
     auto old_error_handler = XSetErrorHandler(IgnoreBadWindow);
 
     long nitems;
-    auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", False);
+    auto request = XInternAtom(display_, "_NET_ACTIVE_WINDOW", false);
     auto root = XDefaultRootWindow(display_);
     auto data = GetWindowPropertyByAtom(root, request, &nitems, nullptr, nullptr);
     if (nitems > 0) {
@@ -393,9 +395,9 @@ bool LinuxNative::SetFocusOnWindow(const std::string& window_name) {
         [](Window window, void* ptr) {
             EnumWind* ew = (EnumWind*)ptr;
             static auto atom_window_type_id =
-                XInternAtom(ew->sender_->display_, "_NET_WM_WINDOW_TYPE", True);
+                XInternAtom(ew->sender_->display_, "_NET_WM_WINDOW_TYPE", true);
             static auto atom_target_type =
-                XInternAtom(ew->sender_->display_, "_NET_WM_WINDOW_TYPE_NORMAL", True);
+                XInternAtom(ew->sender_->display_, "_NET_WM_WINDOW_TYPE_NORMAL", true);
 
             XWindowAttributes attr;
             XClassHint classhint;
@@ -447,7 +449,7 @@ void LinuxNative::CursorHide(bool hide) {
             XFreePixmap(display_, pix);
 
             XDefineCursor(display_, root_window, cursor);
-            XGrabPointer(display_, root_window, True, 0, GrabModeAsync, GrabModeAsync, root_window,
+            XGrabPointer(display_, root_window, true, 0, GrabModeAsync, GrabModeAsync, root_window,
             cursor, CurrentTime);*/
             XFixesHideCursor(display_, root_window);
         }
@@ -463,7 +465,7 @@ void LinuxNative::CursorHide(bool hide) {
         is_hidden = false;
     }
 
-    XSync(display_, False);
+    XSync(display_, false);
     XFlush(display_);
 }
 
@@ -510,7 +512,7 @@ unsigned char* LinuxNative::GetWindowPropertyByAtom(Window window, Atom atom, lo
     unsigned char* prop;
     int status;
 
-    status = XGetWindowProperty(display_, window, atom, 0, (~0L), False, AnyPropertyType,
+    status = XGetWindowProperty(display_, window, atom, 0, (~0L), false, AnyPropertyType,
                                 &actual_type, &actual_format, &_nitems, &bytes_after, &prop);
     if (status == BadWindow) {
         fprintf(stderr, "window id # 0x%lx does not exists!", window);
@@ -601,7 +603,7 @@ void LinuxNative::SendKey(int key, bool is_down) {
 
     XTestFakeKeyEvent(display_, key, is_down, CurrentTime);
     XkbLockGroup(display_, XkbUseCoreKbd, current_group);
-    XSync(display_, False);
+    XSync(display_, false);
     XFlush(display_);
 }
 
@@ -614,7 +616,7 @@ void LinuxNative::SendModifier(int modmask, int is_press) {
                     modifiers->modifiermap[mod_index * modifiers->max_keypermod + mod_key];
                 if (keycode) {
                     XTestFakeKeyEvent(display_, keycode, is_press, CurrentTime);
-                    XSync(display_, False);
+                    XSync(display_, false);
                     break;
                 }
             }
@@ -632,31 +634,31 @@ bool LinuxNative::EWMHIsSupported(const char* feature) {
     Atom request;
     Atom feature_atom;
 
-    request = XInternAtom(display_, "_NET_SUPPORTED", False);
-    feature_atom = XInternAtom(display_, feature, False);
+    request = XInternAtom(display_, "_NET_SUPPORTED", false);
+    feature_atom = XInternAtom(display_, feature, false);
     root = XDefaultRootWindow(display_);
 
     results = (Atom*)GetWindowPropertyByAtom(root, request, &nitems);
     for (i = 0L; i < nitems; i++) {
         if (results[i] == feature_atom) {
             free(results);
-            return True;
+            return true;
         }
     }
     free(results);
 
-    return False;
+    return false;
 }
 
 bool LinuxNative::ActivateWindow(Window window) {
-    if (EWMHIsSupported("_NET_ACTIVE_WINDOW") == False) {
-        return False;
+    if (EWMHIsSupported("_NET_ACTIVE_WINDOW") == false) {
+        return false;
     }
 
-    if (EWMHIsSupported("_NET_WM_DESKTOP") == True &&
-        EWMHIsSupported("_NET_CURRENT_DESKTOP") == True) {
+    if (EWMHIsSupported("_NET_WM_DESKTOP") == true &&
+        EWMHIsSupported("_NET_CURRENT_DESKTOP") == true) {
         long nitems;
-        auto request = XInternAtom(display_, "_NET_WM_DESKTOP", False);
+        auto request = XInternAtom(display_, "_NET_WM_DESKTOP", false);
         auto data = GetWindowPropertyByAtom(window, request, &nitems, nullptr, nullptr);
 
         if (nitems > 0) {
@@ -667,12 +669,12 @@ bool LinuxNative::ActivateWindow(Window window) {
             xev.type = ClientMessage;
             xev.xclient.display = display_;
             xev.xclient.window = root;
-            xev.xclient.message_type = XInternAtom(display_, "_NET_CURRENT_DESKTOP", False);
+            xev.xclient.message_type = XInternAtom(display_, "_NET_CURRENT_DESKTOP", false);
             xev.xclient.format = 32;
             xev.xclient.data.l[0] = desktop;
             xev.xclient.data.l[1] = CurrentTime;
 
-            XSendEvent(display_, root, False, SubstructureNotifyMask | SubstructureRedirectMask,
+            XSendEvent(display_, root, false, SubstructureNotifyMask | SubstructureRedirectMask,
                        &xev);
         }
     }
@@ -683,13 +685,13 @@ bool LinuxNative::ActivateWindow(Window window) {
     xev.type = ClientMessage;
     xev.xclient.display = display_;
     xev.xclient.window = window;
-    xev.xclient.message_type = XInternAtom(display_, "_NET_ACTIVE_WINDOW", False);
+    xev.xclient.message_type = XInternAtom(display_, "_NET_ACTIVE_WINDOW", false);
     xev.xclient.format = 32;
     xev.xclient.data.l[0] = 2L;
     xev.xclient.data.l[1] = CurrentTime;
 
     XGetWindowAttributes(display_, window, &wattr);
-    int ret = XSendEvent(display_, wattr.screen->root, False,
+    int ret = XSendEvent(display_, wattr.screen->root, false,
                          SubstructureNotifyMask | SubstructureRedirectMask, &xev);
     return ret != BadWindow && ret != BadValue;
 }
