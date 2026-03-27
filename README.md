@@ -1,4 +1,6 @@
 # RMB
+[![CI / CD](https://github.com/IamSanjid/RMB/actions/workflows/ci.yml/badge.svg)](https://github.com/IamSanjid/RMB/actions/workflows/ci.yml)
+
 Mouse Panning and Mouse Button binder for Ryujinx(https://ryujinx.org/).
 
 It's a simple learning project. I wanted to use my mouse and change the camera view position but Ryujinx doesn't support this yet, you have to use third-party software to achieve it. In short, this lets you use your mouse to change the in-game camera view position for some games.
