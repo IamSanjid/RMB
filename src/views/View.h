@@ -1,6 +1,24 @@
 #pragma once
 
 #include <cstdint>
+#include "clay/clay.h"
+
+enum class ViewActionType {
+    None,
+    Render,
+    NavigateTo,
+    NavigateBack,
+};
+
+class View;
+
+struct ViewResult {
+    ViewActionType action = ViewActionType::None;
+    union {
+        Clay_RenderCommandArray commands;
+        View* view = nullptr;
+    };
+};
 
 class View {
 public:
@@ -18,6 +36,10 @@ public:
         (void)key;
         (void)scancode;
         (void)mods;
+    }
+
+    virtual ViewResult Update() {
+        return ViewResult();
     }
 
 protected:

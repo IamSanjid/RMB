@@ -932,7 +932,11 @@ int build_main() {
 
     libglfw3_path = nob_temp_sprintf("%s/glfw3.lib", libglfw3_path);
 
+    nob_cmd_append(&cmd, "/Isrc/clay");
+
 #else // _WIN32
+
+    nob_cmd_append(&cmd, "-Isrc/clay");
 
 #if defined(__APPLE__) || defined(__MACH__)
 
@@ -1069,6 +1073,15 @@ int build_main() {
 #endif
     nob_log(NOB_INFO, "Built '" MAIN "' successfully: %s", main_path);
 
+    const char* dest_resources = nob_temp_sprintf("%s/resources", build_path);
+    if (!nob_file_exists(dest_resources)) {
+        nob_log(NOB_INFO, "Copying 'resources' to %s", build_path);
+        if (!nob_copy_directory_recursively("./resources", dest_resources)) {
+            nob_log(NOB_ERROR, "Couldn't copy the 'resources' folder to the build folder...");
+            nob_return_defer(false);
+        }
+    }
+
 defer:
 #if defined(__APPLE__) || defined(__MACH__)
     if (obj_srcs.capacity > 0)
@@ -1105,12 +1118,18 @@ int main(int argc, char** argv) {
     const char* program = nob_shift_args(&argc, &argv);
     (void)program;
 
+    bool skip_externels = false;
+    while (argc > 0) {
+        const char* arg = nob_shift_args(&argc, &argv);
+        skip_externels = (strcmp(arg, "--skip-externels") == 0);
+    }
+
     int result = 0;
     nob_log(NOB_INFO, "--- STAGE 2 ---");
 
     if (!check_prerequisites())
         nob_return_defer(1);
-    if (!check_externels())
+    if (!skip_externels && !check_externels())
         nob_return_defer(1);
 
     // nob_return_defer(0);

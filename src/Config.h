@@ -12,8 +12,8 @@ public:
     void Save(const std::string& file);
 
     const char* NAME = "RMB";
-    const uint32_t WIDTH = 420;
-    const uint32_t HEIGHT = 520;
+    const uint32_t WIDTH = 800;
+    const uint32_t HEIGHT = 600;
 
     std::string TARGET_NAME = "Ryujinx";
 
