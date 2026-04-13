@@ -244,29 +244,11 @@ public:
                         .backgroundColor = COLOR_CARD_BG,
                         .cornerRadius = CLAY_CORNER_RADIUS(8)
                     }) {
-                        CLAY_AUTO_ID({
-                            .layout = {
-                                .sizing = {
-                                    .width = CLAY_SIZING_GROW(0),
-                                    .height = CLAY_SIZING_FIT(0)
-                                },
-                                .padding = CLAY_PADDING_ALL(2),
-                                .childGap = 8,
-                                .childAlignment = {.y = CLAY_ALIGN_Y_CENTER}
-                            }
-                        }) {
-                            CLAY_AUTO_ID({
-                                .layout = {.sizing = { .width = CLAY_SIZING_FIT(20), .height = CLAY_SIZING_FIT(20) }},
-                                .cornerRadius = { 10, 10, 10, 10 },
-                                .image = { .imageData = &icon_label_window_ },
-                            }) {}
-
-                            CLAY_TEXT(CLAY_STRING("TARGET WINDOW STRING"), {
-                                .textColor = COLOR_LABEL,
-                                .fontId = FONT_ID_INTER_BOLD,
-                                .fontSize = 18
-                            });
-                        }
+                        LabelWithImage(CLAY_STRING("TARGET WINDOW STRING"), {
+                            .textColor = COLOR_LABEL,
+                            .fontId = FONT_ID_INTER_BOLD,
+                            .fontSize = 18
+                        }, 20, &icon_label_window_);
                         CLAY_TEXT_INPUT(CLAY_ID("TargetWindow"), &ti_target_window_, &DEFAULT_TEXT_INPUT_CONFIG);
                     }
 
@@ -283,29 +265,11 @@ public:
                         .backgroundColor = COLOR_CARD_BG,
                         .cornerRadius = CLAY_CORNER_RADIUS(8)
                     }) {
-                        CLAY_AUTO_ID({
-                            .layout = {
-                                .sizing = {
-                                    .width = CLAY_SIZING_GROW(0),
-                                    .height = CLAY_SIZING_FIT(0)
-                                },
-                                .padding = CLAY_PADDING_ALL(2),
-                                .childGap = 8,
-                                .childAlignment = {.y = CLAY_ALIGN_Y_CENTER}
-                            }
-                        }) {
-                            CLAY_AUTO_ID({
-                                .layout = {.sizing = { .width = CLAY_SIZING_FIT(24), .height = CLAY_SIZING_FIT(24) }},
-                                .cornerRadius = { 12, 12, 12, 12 },
-                                .image = { .imageData = &icon_primary_keyboard_ },
-                            }) {}
-
-                            CLAY_TEXT(CLAY_STRING("Panning Toggle Hotkeys"), {
-                                .textColor = COLOR_HEADLINE,
-                                .fontId = FONT_ID_INTER_BOLD,
-                                .fontSize = 18
-                            });
-                        }
+                        LabelWithImage(CLAY_STRING("Panning Toggle Hotkeys"), {
+                            .textColor = COLOR_HEADLINE,
+                            .fontId = FONT_ID_INTER_BOLD,
+                            .fontSize = 18
+                        }, 24, &icon_primary_keyboard_);
                     }
                 }
 
@@ -332,35 +296,17 @@ public:
                         .backgroundColor = COLOR_CARD_BG,
                         .cornerRadius = CLAY_CORNER_RADIUS(8)
                     }) {
-                        CLAY_AUTO_ID({
-                            .layout = {
-                                .sizing = {
-                                    .width = CLAY_SIZING_GROW(0),
-                                    .height = CLAY_SIZING_FIT(0)
-                                },
-                                .padding = CLAY_PADDING_ALL(2),
-                                .childGap = 8,
-                                .childAlignment = {.y = CLAY_ALIGN_Y_CENTER}
-                            }
-                        }) {
-                            CLAY_AUTO_ID({
-                                .layout = {.sizing = { .width = CLAY_SIZING_FIT(20), .height = CLAY_SIZING_FIT(20) }},
-                                .cornerRadius = { 10, 10, 10, 10 },
-                                .image = { .imageData = &icon_headline_hide_source_ },
-                            }) {}
-
-                            CLAY_TEXT(CLAY_STRING("Deadzone"), {
-                                .textColor = COLOR_HEADLINE,
-                                .fontId = FONT_ID_INTER_BOLD,
-                                .fontSize = 18
-                            });
-                        }
+                        LabelWithImage(CLAY_STRING("Deadzone"), {
+                            .textColor = COLOR_HEADLINE,
+                            .fontId = FONT_ID_INTER_BOLD,
+                            .fontSize = 18
+                        }, 20, &icon_headline_hide_source_);
 
                         LabelWithImage(CLAY_STRING("Range"), {
-                                .textColor = COLOR_HEADLINE,
-                                .fontId = FONT_ID_INTER_BOLD,
-                                .fontSize = 18
-                            }, 24, &icon_headline_straighten_);
+                            .textColor = COLOR_HEADLINE,
+                            .fontId = FONT_ID_INTER_BOLD,
+                            .fontSize = 18
+                        }, 24, &icon_headline_straighten_);
                     }
                 }
             }

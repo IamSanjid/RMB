@@ -16,6 +16,7 @@
 #define CLAY_RENDERER_GLES3_IMPLEMENTATION
 #define CLAY_TEXT_INPUT_IMPLEMENTATION
 #define CLAY_BUTTON_IMPLEMENTATION
+#define CLAY_DROP_DOWN_IMPLEMENTATION
 
 #include "clay/clay.h"
 #include "clay/clay_renderer_gles3.h"
@@ -24,6 +25,7 @@
 #undef _CRT_SECURE_NO_WARNINGS
 #include "clay/clay_text_input.h"
 #include "clay/clay_button.h"
+#include "clay/clay_drop_down.h"
 
 #include <GLFW/glfw3.h>
 #ifdef _MSC_VER

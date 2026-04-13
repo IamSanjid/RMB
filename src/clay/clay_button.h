@@ -1,7 +1,7 @@
 /*
- * clay_button_input.h
+ * clay_button.h
  *
- * Text input widget for Clay UI — C99 / C++20 compatible.
+ * Button widget for Clay UI — C99 / C++20 compatible.
  *
  */
 

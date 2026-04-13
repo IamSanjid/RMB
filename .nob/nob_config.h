@@ -2,7 +2,7 @@
 #define _NOB_CONFIG_H_
 
 #define MAIN "RMB"
-// #define BUILD_DEBUG
+ #define BUILD_DEBUG
 #define MAX_PROCESS 5
 #define EXTERNALS_DIR "externals"
 #ifdef BUILD_DEBUG
